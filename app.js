@@ -7,9 +7,6 @@ const connectDB = require('./config/db');
 const authRoutes = require('./routes/auth');
 const dashboardRoutes = require('./routes/dashBoard');
 const checkInRoutes = require('./routes/checkIns');
-const paymentRoutes = require('./routes/payments');
-
-
 
 dotenv.config();
 const app = express();
@@ -24,9 +21,6 @@ app.use(cors({
     origin: process.env.CLIENT_URL || ['http://localhost:3000', 'http://localhost:5173'],
     credentials: true
 }));
-
-app.use('/payments', paymentRoutes);
-app.use('/api/payments', paymentRoutes);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -44,14 +38,12 @@ app.get('/health', (request, response) => {
     });
 });
 
-app.use('/auth', authRoutes);
-app.use('/dashboard', dashboardRoutes);
-app.use('/check-ins', checkInRoutes);
-
-app.use('/api/auth', authRoutes);
-app.use('/api/dashboard', dashboardRoutes);
-app.use('/api/check-ins', checkInRoutes);
+for (const prefix of ['', '/api']) {
+    app.use(`${prefix}/auth`, authRoutes);
+    app.use(`${prefix}/dashboard`, dashboardRoutes);
+    app.use(`${prefix}/check-ins`, checkInRoutes);
+}
 
 app.listen(PORT, ()=> {
-    console.log(`Server listening on port ${PORT}`);
+    console.log(`Server is LIVE and LISTENING on port ${PORT}`);
 });
