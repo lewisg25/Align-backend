@@ -1,66 +1,28 @@
 const Question = require('../models/Questions');
 const CheckIns = require('../models/checkIns');
 
+const fallbackQuestion = (tier, questionId, text, category) => ({
+  questionId,
+  text,
+  category,
+  tier
+});
+
 const fallbackQuestions = {
   '1-3_years': [
-    {
-      questionId: 1001,
-      text: "What is something you've learned about your partner recently that made you feel closer?",
-      category: 'Foundation & Discovery',
-      tier: '1-3_years'
-    },
-    {
-      questionId: 1002,
-      text: 'What is one tradition you would like to start together?',
-      category: 'Habits & Traditions',
-      tier: '1-3_years'
-    },
-    {
-      questionId: 1003,
-      text: 'How can you both communicate more clearly this week?',
-      category: 'Communication',
-      tier: '1-3_years'
-    }
+    fallbackQuestion('1-3_years', 1001, "What is something you've learned about your partner recently that made you feel closer?", 'Foundation & Discovery'),
+    fallbackQuestion('1-3_years', 1002, 'What is one tradition you would like to start together?', 'Habits & Traditions'),
+    fallbackQuestion('1-3_years', 1003, 'How can you both communicate more clearly this week?', 'Communication')
   ],
   '5-7_years': [
-    {
-      questionId: 5001,
-      text: 'What part of your relationship are you most proud of today?',
-      category: 'Growth',
-      tier: '5-7_years'
-    },
-    {
-      questionId: 5002,
-      text: 'What helps you feel emotionally connected after all these years?',
-      category: 'Connection',
-      tier: '5-7_years'
-    },
-    {
-      questionId: 5003,
-      text: 'What would make this next chapter of your relationship more fulfilling?',
-      category: 'Future Planning',
-      tier: '5-7_years'
-    }
+    fallbackQuestion('5-7_years', 5001, 'What part of your relationship are you most proud of today?', 'Growth'),
+    fallbackQuestion('5-7_years', 5002, 'What helps you feel emotionally connected after all these years?', 'Connection'),
+    fallbackQuestion('5-7_years', 5003, 'What would make this next chapter of your relationship more fulfilling?', 'Future Planning')
   ],
   other: [
-    {
-      questionId: 9001,
-      text: 'What is one way you can make your partner feel seen and appreciated today?',
-      category: 'Emotional',
-      tier: 'other'
-    },
-    {
-      questionId: 9002,
-      text: 'What shared goal would help you feel more aligned right now?',
-      category: 'Future',
-      tier: 'other'
-    },
-    {
-      questionId: 9003,
-      text: 'What conversation have you been putting off that could bring you closer?',
-      category: 'Communication',
-      tier: 'other'
-    }
+    fallbackQuestion('other', 9001, 'What is one way you can make your partner feel seen and appreciated today?', 'Emotional'),
+    fallbackQuestion('other', 9002, 'What shared goal would help you feel more aligned right now?', 'Future'),
+    fallbackQuestion('other', 9003, 'What conversation have you been putting off that could bring you closer?', 'Communication')
   ]
 };
 
@@ -86,11 +48,21 @@ function getCurrentWeekIdentifier() {
 }
 
 function buildQuestionKey(response) {
-  return String(response.questionId || response.questionKey || response.questionIdNumber || response.questionText || '');
+  return String(
+    response.questionKey ||
+    response.questionIdNumber ||
+    response.questionNumber ||
+    response.questionId ||
+    response._id ||
+    response.id ||
+    response.questionText ||
+    response.text ||
+    ''
+  );
 }
 
 function getQuestionKey(question) {
-  return String(question._id || question.questionId || question.text);
+  return String(question.questionId || question._id || question.text);
 }
 
 function getDateKey(date, timeZone = 'America/New_York') {

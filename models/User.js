@@ -25,7 +25,6 @@ const UserSchema = new mongoose.Schema({
     enum: ['1-3_years', '5-7_years', 'other'],
     default: 'other'
   },
-  stripeCustomerId: { type: String, default: null },
   isPremium: { type: Boolean, default: false },
   isEmailVerified: { type: Boolean, default: false },
   emailVerificationToken: { type: String, default: null, select: false },
