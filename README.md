@@ -1,7 +1,5 @@
 # Align-backend
 
-## Google sign-in setup
-
 
 ## 📋 About This Repository
 The back end (or server-side) of an application is the "brain" that lives behind the scenes, handling data processing, security, and communication with databases. Align-server to clearly distinguish this codebase from your frontend (client) repository. This project follows the **MVC (Model-View-Controller)** architecture, which is an industry-standard way to organize code so that it remains readable and scalable as you add features like Authentication and Databases.
