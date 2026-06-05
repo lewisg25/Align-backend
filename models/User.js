@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const UserSchema = new mongoose.Schema({
+const userSchema = new mongoose.Schema({
   firstName: { type: String, required: true, trim: true },
   lastName: { type: String, default: '', trim: true },
   email: { type: String, required: true, unique: true, lowercase: true, trim: true },
@@ -34,11 +34,11 @@ const UserSchema = new mongoose.Schema({
   timezone: { type: String, default: 'America/New_York' } 
 }, { timestamps: true });
 
-UserSchema.virtual('fullName').get(function getFullName() {
+userSchema.virtual('fullName').get(function getFullName() {
   return [this.firstName, this.lastName].filter(Boolean).join(' ');
 });
 
-UserSchema.set('toJSON', { virtuals: true });
-UserSchema.set('toObject', { virtuals: true });
+userSchema.set('toJSON', { virtuals: true });
+userSchema.set('toObject', { virtuals: true });
 
-module.exports = mongoose.model('User', UserSchema);
+module.exports = mongoose.model('User', userSchema);

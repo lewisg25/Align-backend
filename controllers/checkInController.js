@@ -1,17 +1,17 @@
-const CheckIns = require('../models/checkIns');
+const CheckIn = require('../models/checkIns');
 const {
-  buildQuestionKey,
-  dateKeyToUtcTime,
-  getCurrentWeekIdentifier,
-  getDailyQuestionsForUser,
-  getDateKey,
+  currentWeek,
+  dailyQuestions,
+  dateKey,
+  questionKey,
+  utcTime,
 } = require('../services/questionService');
 
-function isMongoObjectId(value) {
+function isMongoId(value) {
   return Boolean(value && String(value).match(/^[a-f\d]{24}$/i));
 }
 
-function getQuestionObjectId(response) {
+function responseId(response) {
   const candidate =
     response.questionMongoId ||
     response.questionObjectId ||
@@ -19,16 +19,16 @@ function getQuestionObjectId(response) {
     response.id ||
     response.questionId;
 
-  return isMongoObjectId(candidate) ? candidate : null;
+  return isMongoId(candidate) ? candidate : null;
 }
 
-function getResponseItems(body) {
+function responseItems(body) {
   if (Array.isArray(body.responses) && body.responses.length) return body.responses;
   if (body.response && typeof body.response === 'object') return [body.response];
   return [body];
 }
 
-function normalizeResponse(response) {
+function cleanResponse(response) {
   const questionText = response.questionText || response.text || response.question;
   const answerText =
     response.answerText ||
@@ -37,8 +37,8 @@ function normalizeResponse(response) {
     response.learned;
 
   return {
-    questionId: getQuestionObjectId(response),
-    questionKey: buildQuestionKey({ ...response, questionText }),
+    questionId: responseId(response),
+    questionKey: questionKey({ ...response, questionText }),
     questionText,
     category: response.category || 'Reflection',
     answerText,
@@ -47,12 +47,12 @@ function normalizeResponse(response) {
   };
 }
 
-async function updateUserStreak(user) {
+async function updateStreak(user) {
   const now = new Date();
   const timezone = user.timezone || 'America/New_York';
-  const todayKey = getDateKey(now, timezone);
+  const todayKey = dateKey(now, timezone);
   const lastKey = user.lastCheckInDate
-    ? getDateKey(user.lastCheckInDate, timezone)
+    ? dateKey(user.lastCheckInDate, timezone)
     : null;
 
   if (lastKey === todayKey) {
@@ -65,7 +65,7 @@ async function updateUserStreak(user) {
 
   const dayDifference = lastKey
     ? Math.round(
-        (dateKeyToUtcTime(todayKey) - dateKeyToUtcTime(lastKey)) / 86400000
+        (utcTime(todayKey) - utcTime(lastKey)) / 86400000
       )
     : null;
   const currentStreak = dayDifference === 1 ? (user.currentStreak || 0) + 1 : 1;
@@ -84,7 +84,7 @@ async function updateUserStreak(user) {
 
 async function getQuestions(req, res) {
   try {
-    res.status(200).json(await getDailyQuestionsForUser(req.user));
+    res.status(200).json(await dailyQuestions(req.user));
   } catch (error) {
     res
       .status(500)
@@ -93,29 +93,29 @@ async function getQuestions(req, res) {
 }
 
 async function submitCheckIn(req, res) {
-  const { weekIdentifier = getCurrentWeekIdentifier() } = req.body;
+  const { weekIdentifier: weekId = currentWeek() } = req.body;
 
   try {
-    const normalizedResponses = getResponseItems(req.body)
-      .map(normalizeResponse)
+    const responses = responseItems(req.body)
+      .map(cleanResponse)
       .filter((response) => response.questionText && response.answerText);
 
-    if (!normalizedResponses.length) {
+    if (!responses.length) {
       return res
         .status(400)
         .json({ error: 'At least one answered question is required.' });
     }
 
-    const checkIn = await CheckIns.findOneAndUpdate(
+    const checkIn = await CheckIn.findOneAndUpdate(
       {
-        weekIdentifier,
+        weekIdentifier: weekId,
         user: req.user._id,
       },
       {
-        weekIdentifier,
+        weekIdentifier: weekId,
         user: req.user._id,
         partner: req.user.partnerId || null,
-        responses: normalizedResponses,
+        responses,
         isCompleted: true,
       },
       {
@@ -125,7 +125,7 @@ async function submitCheckIn(req, res) {
       }
     );
 
-    const streak = await updateUserStreak(req.user);
+    const streak = await updateStreak(req.user);
 
     res.status(200).json({
       message: 'Check-in submitted successfully',
@@ -140,47 +140,47 @@ async function submitCheckIn(req, res) {
 }
 
 async function saveResponse(req, res) {
-  const { weekIdentifier = getCurrentWeekIdentifier() } = req.body;
-  const responsePayload = normalizeResponse(req.body);
+  const { weekIdentifier: weekId = currentWeek() } = req.body;
+  const response = cleanResponse(req.body);
 
-  if (!responsePayload.questionText || !responsePayload.answerText) {
+  if (!response.questionText || !response.answerText) {
     return res
       .status(400)
       .json({ error: 'Question text and answer text are required.' });
   }
 
   try {
-    let checkIn = await CheckIns.findOne({
+    let checkIn = await CheckIn.findOne({
       user: req.user._id,
-      weekIdentifier,
+      weekIdentifier: weekId,
     });
 
     if (!checkIn) {
-      checkIn = new CheckIns({
-        weekIdentifier,
+      checkIn = new CheckIn({
+        weekIdentifier: weekId,
         user: req.user._id,
         partner: req.user.partnerId || null,
         responses: [],
       });
     }
 
-    const existingResponse = checkIn.responses.find(
-      (response) => response.questionKey === responsePayload.questionKey
+    const savedResponse = checkIn.responses.find(
+      (item) => item.questionKey === response.questionKey
     );
 
-    if (existingResponse) {
-      Object.assign(existingResponse, responsePayload);
+    if (savedResponse) {
+      Object.assign(savedResponse, response);
     } else {
-      checkIn.responses.push(responsePayload);
+      checkIn.responses.push(response);
     }
 
     checkIn.isCompleted = true;
     await checkIn.save();
-    const streak = await updateUserStreak(req.user);
+    const streak = await updateStreak(req.user);
 
     return res.status(200).json({
       message: 'Thank you for your response.',
-      weekIdentifier,
+      weekIdentifier: weekId,
       checkInId: checkIn._id,
       responses: checkIn.responses,
       streak,

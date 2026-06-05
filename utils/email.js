@@ -1,10 +1,10 @@
 const nodemailer = require('nodemailer');
 
-function getClientUrl() {
+function clientUrl() {
   return process.env.CLIENT_URL || 'http://localhost:3000';
 }
 
-function getTransporter() {
+function mailer() {
   if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
     return null;
   }
@@ -21,9 +21,9 @@ function getTransporter() {
 }
 
 async function sendVerificationEmail({ user, verificationToken }) {
-  const verifyUrl = `${getClientUrl()}/verify-email?token=${verificationToken}`;
-  const from = process.env.EMAIL_FROM || 'ALIGN <no-reply@align.local>';
-  const subject = 'Verify your ALIGN account';
+  const verifyUrl = `${clientUrl()}/verify-email?token=${verificationToken}`;
+  const from = process.env.EMAIL_FROM || 'Align <no-reply@align.local>';
+  const subject = 'Verify your Align account';
   const text = [
     `Hi ${user.firstName},`,
     '',
@@ -35,14 +35,14 @@ async function sendVerificationEmail({ user, verificationToken }) {
     <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #17211c;">
       <h2>Thank you for signing up.</h2>
       <p>Stay aligned.</p>
-      <p>Hi ${user.firstName}, please verify your email to finish setting up your ALIGN account.</p>
+      <p>Hi ${user.firstName}, please verify your email to finish setting up your Align account.</p>
       <p><a href="${verifyUrl}" style="background:#1f6d3f;color:#fff;padding:12px 18px;border-radius:6px;text-decoration:none;">Verify email</a></p>
       <p>If the button does not work, copy and paste this link into your browser:</p>
       <p>${verifyUrl}</p>
     </div>
   `;
 
-  const transporter = getTransporter();
+  const transporter = mailer();
 
   if (!transporter) {
     console.log(`Email verification link for ${user.email}: ${verifyUrl}`);
