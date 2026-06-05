@@ -13,10 +13,9 @@ const UserSchema = new mongoose.Schema({
   },
   authProvider: {
     type: String,
-    enum: ['local', 'google'],
+    enum: ['local'],
     default: 'local'
   },
-  googleId: { type: String, unique: true, sparse: true },
   avatarUrl: { type: String, default: '' },
   partnerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   yearsTogether: { type: Number, default: 0 },

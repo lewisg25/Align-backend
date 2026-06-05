@@ -12,8 +12,6 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-connectDB();
-
 //Middleware
 app.use(helmet()); 
 app.use(morgan('dev'));
@@ -44,6 +42,12 @@ for (const prefix of ['', '/api']) {
     app.use(`${prefix}/check-ins`, checkInRoutes);
 }
 
-app.listen(PORT, ()=> {
-    console.log(`Server is LIVE and LISTENING on port ${PORT}`);
-});
+async function startServer() {
+    await connectDB();
+
+    app.listen(PORT, ()=> {
+        console.log(`Server is LIVE and LISTENING on port ${PORT}`);
+    });
+}
+
+startServer();

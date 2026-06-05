@@ -77,6 +77,12 @@ function getDateKey(date, timeZone = 'America/New_York') {
   return `${values.year}-${values.month}-${values.day}`;
 }
 
+function isValidDateValue(value) {
+  const date = value instanceof Date ? value : new Date(value);
+
+  return !Number.isNaN(date.getTime());
+}
+
 function dateKeyToUtcTime(dateKey) {
   const [year, month, day] = dateKey.split('-').map(Number);
   return Date.UTC(year, month - 1, day);
@@ -101,7 +107,7 @@ async function getDailyQuestionsForUser(user) {
   const weekIdentifier = getCurrentWeekIdentifier();
   const checkIn = await CheckIns.findOne({ user: user._id, weekIdentifier });
   const todaysResponse = checkIn?.responses.find(
-    (response) => getDateKey(response.answeredAt, timezone) === todayKey
+    (response) => isValidDateValue(response.answeredAt) && getDateKey(response.answeredAt, timezone) === todayKey
   );
 
   if (!questions.length) {
@@ -109,6 +115,8 @@ async function getDailyQuestionsForUser(user) {
   }
 
   if (todaysResponse) {
+    const questionKey = buildQuestionKey(todaysResponse);
+
     return {
       yearsTogether: user.yearsTogether,
       relationshipTier,
@@ -117,16 +125,16 @@ async function getDailyQuestionsForUser(user) {
       answeredToday: true,
       message: "You already completed today's check-in. Come back tomorrow for your next question.",
       questions: [{
-        questionId: todaysResponse.questionKey,
+        questionId: questionKey,
         text: todaysResponse.questionText,
-        category: todaysResponse.category,
+        category: todaysResponse.category || 'Reflection',
         tier: relationshipTier,
         answeredToday: true
       }]
     };
   }
 
-  const answeredKeys = new Set((checkIn?.responses || []).map((response) => response.questionKey));
+  const answeredKeys = new Set((checkIn?.responses || []).map(buildQuestionKey).filter(Boolean));
   const unansweredQuestions = questions.filter((question) => !answeredKeys.has(getQuestionKey(question)));
   const dailyQuestion = getRandomItem(unansweredQuestions.length ? unansweredQuestions : questions);
 
