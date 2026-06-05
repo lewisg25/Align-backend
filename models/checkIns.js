@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const ResponseSchema = new mongoose.Schema({
+const responseSchema = new mongoose.Schema({
   questionId: { type: mongoose.Schema.Types.ObjectId, ref: 'Question', default: null },
   questionKey: { type: String, required: true },
   questionText: { type: String, required: true },
@@ -10,14 +10,14 @@ const ResponseSchema = new mongoose.Schema({
   answeredAt: { type: Date, default: Date.now }
 });
 
-const CheckInSchema = new mongoose.Schema({
+const checkInSchema = new mongoose.Schema({
   weekIdentifier: { type: String, required: true }, // e.g., "2026-W22"
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   partner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
-  responses: [ResponseSchema],
+  responses: [responseSchema],
   isCompleted: { type: Boolean, default: false }
 }, { timestamps: true });
 
-CheckInSchema.index({ user: 1, weekIdentifier: 1 }, { unique: true });
+checkInSchema.index({ user: 1, weekIdentifier: 1 }, { unique: true });
 
-module.exports = mongoose.model('CheckIn', CheckInSchema);
+module.exports = mongoose.model('CheckIn', checkInSchema);

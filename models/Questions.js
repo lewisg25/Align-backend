@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const QuestionSchema = new mongoose.Schema({
+const questionSchema = new mongoose.Schema({
   questionId: { type: Number, required: true, unique: true },
   text: { type: String, required: true },
   category: { 
@@ -27,4 +27,4 @@ const QuestionSchema = new mongoose.Schema({
   tier: { type: String, enum: ['1-3_years', '5-7_years', 'other'], required: true }
 });
 
-module.exports = mongoose.model('Question', QuestionSchema);
+module.exports = mongoose.model('Question', questionSchema);

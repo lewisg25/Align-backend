@@ -4,16 +4,15 @@ const { sendVerificationEmail } = require('../utils/email');
 const { hashPassword, verifyPassword } = require('../utils/password');
 const { signToken } = require('../utils/token');
 
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const VALID_TIERS = new Set(['1-3_years', '5-7_years', 'other']);
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const validTiers = new Set(['1-3_years', '5-7_years', 'other']);
 
-function getRelationshipTier(yearsTogether, submittedTier) {
-  if (VALID_TIERS.has(submittedTier)) return submittedTier;
+function findTier(yearsTogether, savedTier) {
+  if (validTiers.has(savedTier)) return savedTier;
 
   const years = Number(yearsTogether);
   if (years >= 1 && years <= 3) return '1-3_years';
   if (years >= 5 && years <= 7) return '5-7_years';
-
   return 'other';
 }
 
@@ -45,7 +44,7 @@ function serializeUser(user) {
   };
 }
 
-function buildAuthResponse(user, extras = {}) {
+function authResponse(user, extras = {}) {
   return {
     token: signToken({ sub: user._id.toString(), email: user.email }),
     user: serializeUser(user),
@@ -53,7 +52,7 @@ function buildAuthResponse(user, extras = {}) {
   };
 }
 
-function createVerificationToken() {
+function makeToken() {
   const token = crypto.randomBytes(32).toString('hex');
   const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
   const expires = new Date(Date.now() + 1000 * 60 * 60 * 24);
@@ -72,15 +71,15 @@ async function register(req, res) {
     relationshipTier
   } = req.body;
   const fallbackName = splitName(name);
-  const trimmedFirstName = (firstName || fallbackName.firstName || '').trim();
-  const trimmedLastName = (lastName || fallbackName.lastName || '').trim();
+  const first = (firstName || fallbackName.firstName || '').trim();
+  const last = (lastName || fallbackName.lastName || '').trim();
   const normalizedEmail = (email || '').trim().toLowerCase();
 
-  if (!trimmedFirstName || !normalizedEmail || !password) {
+  if (!first || !normalizedEmail || !password) {
     return res.status(400).json({ message: 'Name, email, and password are required.' });
   }
 
-  if (!EMAIL_PATTERN.test(normalizedEmail)) {
+  if (!emailPattern.test(normalizedEmail)) {
     return res.status(400).json({ message: 'Please enter a valid email address.' });
   }
 
@@ -94,10 +93,10 @@ async function register(req, res) {
       return res.status(409).json({ message: 'An account already exists with that email.' });
     }
 
-    const verification = createVerificationToken();
+    const verification = makeToken();
     const user = await User.create({
-      firstName: trimmedFirstName,
-      lastName: trimmedLastName,
+      firstName: first,
+      lastName: last,
       email: normalizedEmail,
       password: hashPassword(password),
       authProvider: 'local',
@@ -105,7 +104,7 @@ async function register(req, res) {
       emailVerificationToken: verification.tokenHash,
       emailVerificationExpires: verification.expires,
       yearsTogether: Number(yearsTogether) || 0,
-      relationshipTier: getRelationshipTier(yearsTogether, relationshipTier)
+      relationshipTier: findTier(yearsTogether, relationshipTier)
     });
 
     let emailResult = { sent: false };
@@ -118,7 +117,7 @@ async function register(req, res) {
       console.error(`Verification email failed for ${user.email}: ${error.message}`);
     }
 
-    return res.status(201).json(buildAuthResponse(user, {
+    return res.status(201).json(authResponse(user, {
       emailVerificationSent: emailResult.sent,
       message: 'Thank you for signing up. Stay aligned.'
     }));
@@ -178,7 +177,7 @@ async function login(req, res) {
       return res.status(401).json({ message: 'Email or password is incorrect.' });
     }
 
-    return res.json(buildAuthResponse(user));
+    return res.json(authResponse(user));
   } catch (error) {
     return res.status(500).json({ message: 'Could not log you in right now.' });
   }
@@ -197,5 +196,6 @@ module.exports = {
   login,
   logout,
   register,
+  serializeUser,
   verifyEmail
 };

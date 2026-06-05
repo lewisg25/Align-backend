@@ -1,32 +1,32 @@
 const Question = require('../models/Questions');
-const CheckIns = require('../models/checkIns');
+const CheckIn = require('../models/checkIns');
 
-const fallbackQuestion = (tier, questionId, text, category) => ({
+const makeQuestion = (tier, questionId, text, category) => ({
   questionId,
   text,
   category,
   tier
 });
 
-const fallbackQuestions = {
+const fallbackList = {
   '1-3_years': [
-    fallbackQuestion('1-3_years', 1001, "What is something you've learned about your partner recently that made you feel closer?", 'Foundation & Discovery'),
-    fallbackQuestion('1-3_years', 1002, 'What is one tradition you would like to start together?', 'Habits & Traditions'),
-    fallbackQuestion('1-3_years', 1003, 'How can you both communicate more clearly this week?', 'Communication')
+    makeQuestion('1-3_years', 1001, "What is something you've learned about your partner recently that made you feel closer?", 'Foundation & Discovery'),
+    makeQuestion('1-3_years', 1002, 'What is one tradition you would like to start together?', 'Habits & Traditions'),
+    makeQuestion('1-3_years', 1003, 'How can you both communicate more clearly this week?', 'Communication')
   ],
   '5-7_years': [
-    fallbackQuestion('5-7_years', 5001, 'What part of your relationship are you most proud of today?', 'Growth'),
-    fallbackQuestion('5-7_years', 5002, 'What helps you feel emotionally connected after all these years?', 'Connection'),
-    fallbackQuestion('5-7_years', 5003, 'What would make this next chapter of your relationship more fulfilling?', 'Future Planning')
+    makeQuestion('5-7_years', 5001, 'What part of your relationship are you most proud of today?', 'Growth'),
+    makeQuestion('5-7_years', 5002, 'What helps you feel emotionally connected after all these years?', 'Connection'),
+    makeQuestion('5-7_years', 5003, 'What would make this next chapter of your relationship more fulfilling?', 'Future Planning')
   ],
   other: [
-    fallbackQuestion('other', 9001, 'What is one way you can make your partner feel seen and appreciated today?', 'Emotional'),
-    fallbackQuestion('other', 9002, 'What shared goal would help you feel more aligned right now?', 'Future'),
-    fallbackQuestion('other', 9003, 'What conversation have you been putting off that could bring you closer?', 'Communication')
+    makeQuestion('other', 9001, 'What is one way you can make your partner feel seen and appreciated today?', 'Emotional'),
+    makeQuestion('other', 9002, 'What shared goal would help you feel more aligned right now?', 'Future'),
+    makeQuestion('other', 9003, 'What conversation have you been putting off that could bring you closer?', 'Communication')
   ]
 };
 
-function tierFromYears(yearsTogether, savedTier) {
+function findTier(yearsTogether, savedTier) {
   if (savedTier && savedTier !== 'other') return savedTier;
 
   const years = Number(yearsTogether);
@@ -36,7 +36,7 @@ function tierFromYears(yearsTogether, savedTier) {
   return 'other';
 }
 
-function getCurrentWeekIdentifier() {
+function currentWeek() {
   const now = new Date();
   const date = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
   const dayNumber = date.getUTCDay() || 7;
@@ -47,7 +47,7 @@ function getCurrentWeekIdentifier() {
   return `${date.getUTCFullYear()}-W${String(weekNumber).padStart(2, '0')}`;
 }
 
-function buildQuestionKey(response) {
+function questionKey(response) {
   return String(
     response.questionKey ||
     response.questionIdNumber ||
@@ -61,11 +61,11 @@ function buildQuestionKey(response) {
   );
 }
 
-function getQuestionKey(question) {
+function getKey(question) {
   return String(question.questionId || question._id || question.text);
 }
 
-function getDateKey(date, timeZone = 'America/New_York') {
+function dateKey(date, timeZone = 'America/New_York') {
   const parts = new Intl.DateTimeFormat('en-US', {
     timeZone,
     year: 'numeric',
@@ -77,55 +77,55 @@ function getDateKey(date, timeZone = 'America/New_York') {
   return `${values.year}-${values.month}-${values.day}`;
 }
 
-function isValidDateValue(value) {
+function validDate(value) {
   const date = value instanceof Date ? value : new Date(value);
 
   return !Number.isNaN(date.getTime());
 }
 
-function dateKeyToUtcTime(dateKey) {
-  const [year, month, day] = dateKey.split('-').map(Number);
+function utcTime(dateValue) {
+  const [year, month, day] = dateValue.split('-').map(Number);
   return Date.UTC(year, month - 1, day);
 }
 
-function getTomorrowDateKey(timeZone = 'America/New_York') {
-  const todayKey = getDateKey(new Date(), timeZone);
-  const tomorrowTime = dateKeyToUtcTime(todayKey) + 86400000;
+function tomorrowKey(timeZone = 'America/New_York') {
+  const today = dateKey(new Date(), timeZone);
+  const tomorrowTime = utcTime(today) + 86400000;
 
   return new Date(tomorrowTime).toISOString().slice(0, 10);
 }
 
-function getRandomItem(items) {
+function randomItem(items) {
   return items[Math.floor(Math.random() * items.length)];
 }
 
-async function getDailyQuestionsForUser(user) {
-  const relationshipTier = tierFromYears(user.yearsTogether, user.relationshipTier);
+async function dailyQuestions(user) {
+  const relationshipTier = findTier(user.yearsTogether, user.relationshipTier);
   let questions = await Question.find({ tier: relationshipTier }).sort({ questionId: 1 });
   const timezone = user.timezone || 'America/New_York';
-  const todayKey = getDateKey(new Date(), timezone);
-  const weekIdentifier = getCurrentWeekIdentifier();
-  const checkIn = await CheckIns.findOne({ user: user._id, weekIdentifier });
+  const today = dateKey(new Date(), timezone);
+  const weekIdentifier = currentWeek();
+  const checkIn = await CheckIn.findOne({ user: user._id, weekIdentifier });
   const todaysResponse = checkIn?.responses.find(
-    (response) => isValidDateValue(response.answeredAt) && getDateKey(response.answeredAt, timezone) === todayKey
+    (response) => validDate(response.answeredAt) && dateKey(response.answeredAt, timezone) === today
   );
 
   if (!questions.length) {
-    questions = fallbackQuestions[relationshipTier] || fallbackQuestions.other;
+    questions = fallbackList[relationshipTier] || fallbackList.other;
   }
 
   if (todaysResponse) {
-    const questionKey = buildQuestionKey(todaysResponse);
+    const key = questionKey(todaysResponse);
 
     return {
       yearsTogether: user.yearsTogether,
       relationshipTier,
       weekIdentifier,
-      lockedUntil: getTomorrowDateKey(timezone),
+      lockedUntil: tomorrowKey(timezone),
       answeredToday: true,
       message: "You already completed today's check-in. Come back tomorrow for your next question.",
       questions: [{
-        questionId: questionKey,
+        questionId: key,
         text: todaysResponse.questionText,
         category: todaysResponse.category || 'Reflection',
         tier: relationshipTier,
@@ -134,9 +134,9 @@ async function getDailyQuestionsForUser(user) {
     };
   }
 
-  const answeredKeys = new Set((checkIn?.responses || []).map(buildQuestionKey).filter(Boolean));
-  const unansweredQuestions = questions.filter((question) => !answeredKeys.has(getQuestionKey(question)));
-  const dailyQuestion = getRandomItem(unansweredQuestions.length ? unansweredQuestions : questions);
+  const answeredKeys = new Set((checkIn?.responses || []).map(questionKey).filter(Boolean));
+  const openQuestions = questions.filter((question) => !answeredKeys.has(getKey(question)));
+  const dailyQuestion = randomItem(openQuestions.length ? openQuestions : questions);
 
   return {
     yearsTogether: user.yearsTogether,
@@ -148,9 +148,9 @@ async function getDailyQuestionsForUser(user) {
 }
 
 module.exports = {
-  buildQuestionKey,
-  dateKeyToUtcTime,
-  getCurrentWeekIdentifier,
-  getDailyQuestionsForUser,
-  getDateKey
+  currentWeek,
+  dailyQuestions,
+  dateKey,
+  questionKey,
+  utcTime
 };

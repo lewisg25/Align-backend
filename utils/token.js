@@ -1,6 +1,6 @@
 const crypto = require('crypto');
 
-const DEFAULT_EXPIRES_IN_SECONDS = 60 * 60 * 24 * 7;
+const tokenLife = 60 * 60 * 24 * 7;
 
 function getJwtSecret() {
   if (process.env.JWT_SECRET) return process.env.JWT_SECRET;
@@ -21,7 +21,7 @@ function base64UrlDecode(value) {
   return Buffer.from(value, 'base64url').toString('utf8');
 }
 
-function signToken(payload, expiresInSeconds = DEFAULT_EXPIRES_IN_SECONDS) {
+function signToken(payload, expiresInSeconds = tokenLife) {
   const now = Math.floor(Date.now() / 1000);
   const header = { alg: 'HS256', typ: 'JWT' };
   const tokenPayload = {
@@ -51,12 +51,10 @@ function verifyToken(token) {
     .update(unsignedToken)
     .digest('base64url');
 
-  if (
-    !crypto.timingSafeEqual(
-      Buffer.from(signature),
-      Buffer.from(expectedSignature)
-    )
-  ) {
+  const saved = Buffer.from(signature);
+  const expected = Buffer.from(expectedSignature);
+
+  if (saved.length !== expected.length || !crypto.timingSafeEqual(saved, expected)) {
     throw new Error('Invalid token signature.');
   }
 
