@@ -3,7 +3,13 @@ const mongoose = require('mongoose');
 const userSchema = new mongoose.Schema({
   firstName: { type: String, required: true, trim: true },
   lastName: { type: String, default: '', trim: true },
-  email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+    lowercase: true,
+    trim: true
+  },
   password: {
     type: String,
     required() {
@@ -13,25 +19,34 @@ const userSchema = new mongoose.Schema({
   },
   authProvider: {
     type: String,
-    enum: ['local'],
+    enum: ['local', 'google'],
     default: 'local'
   },
+  googleId: {
+    type: String,
+    unique: true,
+    sparse: true
+  },
   avatarUrl: { type: String, default: '' },
-  partnerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+  partnerId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
   yearsTogether: { type: Number, default: 0 },
-  relationshipTier: { 
-    type: String, 
+  relationshipTier: {
+    type: String,
     enum: ['1-3_years', '5-7_years', 'other'],
     default: 'other'
   },
   isPremium: { type: Boolean, default: false },
-  isEmailVerified: { type: Boolean, default: false },
-  emailVerificationToken: { type: String, default: null, select: false },
-  emailVerificationExpires: { type: Date, default: null, select: false },
   currentStreak: { type: Number, default: 0 },
   longestStreak: { type: Number, default: 0 },
   lastCheckInDate: { type: Date, default: null },
-  timezone: { type: String, default: 'America/New_York' } 
+  reminderEnabled: { type: Boolean, default: false },
+  reminderTime: { type: String, default: '09:00' },
+  reminderSent: { type: Date, default: null },
+  timezone: { type: String, default: 'America/New_York' }
 }, { timestamps: true });
 
 userSchema.virtual('fullName').get(function getFullName() {

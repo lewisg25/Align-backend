@@ -2,8 +2,13 @@ require("dotenv").config();
 const mongoose = require("mongoose");
 const Question = require("./models/Questions");
 
+const STAGE_TIERS = Object.freeze({
+  "1-3 Years": "1-3_years",
+  "5-7 Years": "5-7_years",
+});
+
 const questions = [
-  // 1–3 Years
+  // 1-3 Years
   {
     relationshipStage: "1-3 Years",
     category: "Foundation & Discovery",
@@ -112,7 +117,7 @@ const questions = [
     question: "What does a healthy long-term relationship look like to you?",
   },
 
-  // 5–7 Years
+  // 5-7 Years
   {
     relationshipStage: "5-7 Years",
     category: "Growth",
@@ -225,12 +230,10 @@ const questions = [
 ];
 
 function getTier(relationshipStage) {
-  if (relationshipStage === "1-3 Years") return "1-3_years";
-  if (relationshipStage === "5-7 Years") return "5-7_years";
-  return "other";
+  return STAGE_TIERS[relationshipStage] || "other";
 }
 
-function cleanQuestions() {
+function buildQuestionDocuments() {
   return questions.map((item, index) => ({
     questionId: index + 1,
     text: item.question,
@@ -246,31 +249,30 @@ async function seedQuestions() {
 
   await mongoose.connect(process.env.MONGO_URI);
 
-  const cleanList = cleanQuestions();
-  const operations = cleanList.map((question) => ({
-    updateOne: {
-      filter: { questionId: question.questionId },
-      update: { $set: question },
-      upsert: true,
-    },
-  }));
+  try {
+    const questionDocuments = buildQuestionDocuments();
+    const operations = questionDocuments.map((question) => ({
+      updateOne: {
+        filter: { questionId: question.questionId },
+        update: { $set: question },
+        upsert: true,
+      },
+    }));
 
-  const result = await Question.bulkWrite(operations);
+    const result = await Question.bulkWrite(operations);
 
-  console.log("MongoDB question seed complete.");
-  console.log(`Questions processed: ${cleanList.length}`);
-  console.log(`Inserted: ${result.upsertedCount}`);
-  console.log(`Updated: ${result.modifiedCount}`);
-
-  await mongoose.disconnect();
+    console.log("MongoDB question seed complete.");
+    console.log(`Questions processed: ${questionDocuments.length}`);
+    console.log(`Inserted: ${result.upsertedCount}`);
+    console.log(`Updated: ${result.modifiedCount}`);
+  } finally {
+    await mongoose.disconnect();
+  }
 }
 
 if (require.main === module) {
-  seedQuestions().catch(async (error) => {
+  seedQuestions().catch((error) => {
     console.error(`Question seed failed: ${error.message}`);
-    await mongoose.disconnect();
     process.exit(1);
   });
 }
-
-module.exports = cleanQuestions();

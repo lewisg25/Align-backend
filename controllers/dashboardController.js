@@ -1,12 +1,11 @@
 const { dailyQuestions } = require('../services/questionService');
-const { serializeUser } = require('./authController');
+const { serializeUser } = require('../services/userSerializer');
 
 async function getDashboard(req, res) {
   try {
     const dailyCheckIn = await dailyQuestions(req.user);
     const user = serializeUser(req.user);
     delete user.partnerId;
-    delete user.isEmailVerified;
     delete user.timezone;
 
     res.json({
