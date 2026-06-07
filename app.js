@@ -7,6 +7,7 @@ const connectDB = require("./config/db");
 const authRoutes = require("./routes/auth");
 const dashboardRoutes = require("./routes/dashBoard");
 const checkInRoutes = require("./routes/checkIns");
+const { startReminder } = require("./services/dailyReminder");
 
 dotenv.config();
 
@@ -44,6 +45,7 @@ for (const prefix of ["", "/api"]) {
 
 async function startServer() {
   await connectDB();
+  startReminder();
 
   app.listen(port, () => {
     console.log(`Server is live on port ${port}`);
