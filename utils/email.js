@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
 const buttonStyle = [
   'background:#1f6d3f',
@@ -37,6 +38,50 @@ function mailer() {
       pass: process.env.SMTP_PASS
     }
   });
+}
+
+function resendClient() {
+  return process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+}
+
+async function sendMagicLink({ email, firstName, signInUrl, tokenMinutes }) {
+  const resend = resendClient();
+  const from = process.env.EMAIL_FROM || 'ALIGN <onboarding@resend.dev>';
+  const subject = 'Sign in to ALIGN';
+  const text = [
+    `Hi ${firstName || 'there'},`,
+    '',
+    'Click the link below to sign in to your ALIGN dashboard.',
+    '',
+    signInUrl,
+    '',
+    `This link expires in ${tokenMinutes} minutes.`
+  ].join('\n');
+  const html = `
+    <div style="${emailStyle}">
+      <h2>Sign in to ALIGN</h2>
+      <p>Hi ${firstName || 'there'}, click below to access your dashboard.</p>
+      <p><a href="${signInUrl}" style="${buttonStyle}">Sign in</a></p>
+      <p>This link expires in ${tokenMinutes} minutes.</p>
+      <p>If the button does not work, copy and paste this link:</p>
+      <p>${signInUrl}</p>
+    </div>
+  `;
+
+  if (!resend) {
+    console.log(`ALIGN sign-in link for ${email}: ${signInUrl}`);
+    return { sent: false, reason: 'Resend is not configured.' };
+  }
+
+  await resend.emails.send({
+    from,
+    to: email,
+    subject,
+    text,
+    html
+  });
+
+  return { sent: true };
 }
 
 async function sendReminder(user) {
@@ -79,5 +124,6 @@ async function sendReminder(user) {
 }
 
 module.exports = {
+  sendMagicLink,
   sendReminder
 };

@@ -19,7 +19,7 @@ const userSchema = new mongoose.Schema({
   },
   authProvider: {
     type: String,
-    enum: ['local', 'google'],
+    enum: ['local', 'google', 'email'],
     default: 'local'
   },
   googleId: {
@@ -34,6 +34,7 @@ const userSchema = new mongoose.Schema({
     default: null
   },
   yearsTogether: { type: Number, default: 0 },
+  yearsMarried: { type: Number, default: undefined },
   relationshipTier: {
     type: String,
     enum: ['1-3_years', '5-7_years', 'other'],

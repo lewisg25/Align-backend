@@ -1,5 +1,6 @@
 const CheckIn = require('../models/checkIns');
 const { findTier } = require('./relationshipTier');
+const { yearsForUser } = require('./relationshipYears');
 const {
   currentWeek,
   dateKey,
@@ -21,7 +22,8 @@ const answeredTodayMessage = [
 ].join(' ');
 
 async function dailyQuestions(user) {
-  const relationshipTier = findTier(user.yearsTogether, user.relationshipTier);
+  const yearsTogether = yearsForUser(user);
+  const relationshipTier = findTier(yearsTogether, user.relationshipTier);
   const timezone = user.timezone || DEFAULT_TZ;
   const today = dateKey(new Date(), timezone);
   const weekIdentifier = currentWeek();
@@ -31,7 +33,8 @@ async function dailyQuestions(user) {
 
   if (todaysResponse) {
     return {
-      yearsTogether: user.yearsTogether,
+      yearsTogether,
+      yearsMarried: yearsTogether,
       relationshipTier,
       weekIdentifier,
       lockedUntil: tomorrowKey(timezone),
@@ -44,7 +47,8 @@ async function dailyQuestions(user) {
   const dailyQuestion = openQuestion(questions, checkIn?.responses);
 
   return {
-    yearsTogether: user.yearsTogether,
+    yearsTogether,
+    yearsMarried: yearsTogether,
     relationshipTier,
     weekIdentifier,
     answeredToday: false,

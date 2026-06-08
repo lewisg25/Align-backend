@@ -1,6 +1,10 @@
+const { yearsForUser } = require('./relationshipYears');
+
 const DEFAULT_TIME = '09:00';
 
 function serializeUser(user) {
+  const yearsTogether = yearsForUser(user);
+
   return {
     id: user._id.toString(),
     firstName: user.firstName,
@@ -9,7 +13,8 @@ function serializeUser(user) {
     email: user.email,
     avatarUrl: user.avatarUrl,
     partnerId: user.partnerId,
-    yearsTogether: user.yearsTogether,
+    yearsTogether,
+    yearsMarried: yearsTogether,
     relationshipTier: user.relationshipTier,
     isPremium: user.isPremium,
     currentStreak: user.currentStreak,

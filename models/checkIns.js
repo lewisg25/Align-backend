@@ -7,6 +7,7 @@ const responseSchema = new mongoose.Schema({
   category: { type: String, default: 'Reflection' },
   answerText: { type: String, required: true },
   moodScale: { type: Number, min: 1, max: 5, default: 3 },
+  responseDate: { type: String, default: '' },
   answeredAt: { type: Date, default: Date.now }
 });
 

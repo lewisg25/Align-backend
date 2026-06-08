@@ -1,7 +1,11 @@
 const {
+  deleteResponse,
   getQuestions,
+  getResponses,
   saveResponse,
-  submitCheckIn
+  submitCheckIn,
+  updateResponse,
+  weeklySummary
 } = require('./checkInActions');
 
 const {
@@ -10,9 +14,13 @@ const {
 } = require('./reminderSettingsService');
 
 module.exports = {
+  deleteResponse,
   getQuestions,
+  getResponses,
   reminderPayload,
   saveResponse,
   submitCheckIn,
-  updateReminder
+  updateReminder,
+  updateResponse,
+  weeklySummary
 };

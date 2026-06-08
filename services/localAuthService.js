@@ -1,5 +1,9 @@
 const User = require('../models/User');
 const { findTier } = require('./relationshipTier');
+const {
+  relationshipData,
+  yearsFromBody
+} = require('./relationshipYears');
 const { hashPassword, verifyPassword } = require('../utils/password');
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -18,12 +22,15 @@ function splitName(name = '') {
 
 function registrationData(body) {
   const fallback = splitName(body.name);
+  const yearsTogether = yearsFromBody(body) ?? 0;
+
   return {
     firstName: (body.firstName || fallback.firstName || '').trim(),
     lastName: (body.lastName || fallback.lastName || '').trim(),
     email: normalizeEmail(body.email || ''),
     password: body.password || '',
-    yearsTogether: Number(body.yearsTogether) || 0,
+    yearsTogether,
+    yearsMarried: yearsTogether,
     relationshipTier: body.relationshipTier
   };
 }
@@ -72,6 +79,12 @@ async function loginUser(body) {
 
   if (!validPassword) {
     return { error: 'Email or password is incorrect.', status: 401 };
+  }
+
+  const relationship = relationshipData(yearsFromBody(body));
+  if (Object.keys(relationship).length) {
+    Object.assign(user, relationship);
+    await user.save();
   }
 
   return { user };

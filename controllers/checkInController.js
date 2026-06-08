@@ -1,9 +1,13 @@
 const {
+  deleteResponse: deleteCheckInResponse,
   getQuestions: loadQuestions,
+  getResponses: loadResponses,
   reminderPayload,
   saveResponse: saveCheckInResponse,
   submitCheckIn: submitUserCheckIn,
-  updateReminder: saveReminder
+  updateReminder: saveReminder,
+  updateResponse: updateCheckInResponse,
+  weeklySummary: loadWeeklySummary
 } = require('../services/checkInService');
 
 function fail(res, error, fallback) {
@@ -34,6 +38,22 @@ async function getQuestions(req, res) {
   }
 }
 
+async function getResponses(req, res) {
+  try {
+    return res.json(await loadResponses(req.user));
+  } catch (error) {
+    return fail(res, error, 'Failed to retrieve responses.');
+  }
+}
+
+async function getSummary(req, res) {
+  try {
+    return res.json(await loadWeeklySummary(req.user, req.params.weekIdentifier));
+  } catch (error) {
+    return fail(res, error, 'Failed to retrieve summary.');
+  }
+}
+
 async function submitCheckIn(req, res) {
   try {
     return res.json(await submitUserCheckIn(req.user, req.body));
@@ -50,10 +70,30 @@ async function saveResponse(req, res) {
   }
 }
 
+async function updateResponse(req, res) {
+  try {
+    return res.json(await updateCheckInResponse(req.user, req.params.responseId, req.body));
+  } catch (error) {
+    return fail(res, error, 'Failed to update response.');
+  }
+}
+
+async function deleteResponse(req, res) {
+  try {
+    return res.json(await deleteCheckInResponse(req.user, req.params.responseId, req.body));
+  } catch (error) {
+    return fail(res, error, 'Failed to delete response.');
+  }
+}
+
 module.exports = {
+  deleteResponse,
   getReminder,
   getQuestions,
+  getResponses,
+  getSummary,
   saveResponse,
   submitCheckIn,
+  updateResponse,
   updateReminder
 };
