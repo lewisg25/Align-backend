@@ -2,6 +2,7 @@ const express = require('express');
 const requireAuth = require('../middleware/auth');
 const {
   finishGoogleLogin,
+  loginWithGoogleCredential,
   startGoogleLogin
 } = require('../controllers/googleAuthController');
 const {
@@ -14,6 +15,7 @@ const {
 const router = express.Router();
 
 router.get('/google', startGoogleLogin);
+router.post('/google', loginWithGoogleCredential);
 router.get('/google/callback', finishGoogleLogin);
 router.get('/oauth2/authorize/google', startGoogleLogin);
 router.get('/oauth2/callback/google', finishGoogleLogin);

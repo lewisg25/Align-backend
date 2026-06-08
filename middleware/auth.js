@@ -1,18 +1,29 @@
 const User = require('../models/User');
 const { verifyToken } = require('../utils/token');
 
+function cookieValue(cookieHeader, name) {
+  return (cookieHeader || '')
+    .split(';')
+    .map((cookie) => cookie.trim())
+    .find((cookie) => cookie.startsWith(`${name}=`))
+    ?.slice(name.length + 1);
+}
+
 async function requireAuth(req, res, next) {
   const authHeader = req.headers.authorization || '';
   const [scheme, token] = authHeader.split(' ');
+  const sessionToken = scheme === 'Bearer' && token
+    ? token
+    : cookieValue(req.headers.cookie, 'alignSession');
 
-  if (scheme !== 'Bearer' || !token) {
+  if (!sessionToken) {
     return res.status(401).json({
       message: 'You must be logged in to access this route.'
     });
   }
 
   try {
-    const payload = verifyToken(token);
+    const payload = verifyToken(sessionToken);
     const user = await User.findById(payload.sub);
 
     if (!user) {
