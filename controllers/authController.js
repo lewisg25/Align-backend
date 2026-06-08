@@ -52,6 +52,11 @@ function getMe(req, res) {
 }
 
 function logout(req, res) {
+  res.clearCookie('alignSession', {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production'
+  });
   return res.status(204).send();
 }
 
