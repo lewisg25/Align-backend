@@ -9,7 +9,9 @@ const {
   getMe,
   login,
   logout,
-  register
+  register,
+  startEmailLogin,
+  verifyEmailLogin
 } = require('../controllers/authController');
 
 const router = express.Router();
@@ -21,6 +23,8 @@ router.get('/oauth2/authorize/google', startGoogleLogin);
 router.get('/oauth2/callback/google', finishGoogleLogin);
 router.post('/register', register);
 router.post('/login', login);
+router.post('/email/start', startEmailLogin);
+router.post('/verify-email', verifyEmailLogin);
 router.get('/me', requireAuth, getMe);
 router.post('/logout', logout);
 

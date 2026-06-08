@@ -1,4 +1,5 @@
 const { questionKey } = require('./questionKeys');
+const { dateKey } = require('./dateService');
 
 const DEFAULT_MOOD = 3;
 
@@ -28,6 +29,7 @@ function responseItems(body) {
 }
 
 function cleanResponse(response) {
+  const answeredAt = response.answeredAt || new Date();
   const questionText = response.questionText || response.text || response.question;
   const answerText =
     response.answerText ||
@@ -42,7 +44,23 @@ function cleanResponse(response) {
     category: response.category || 'Reflection',
     answerText,
     moodScale: Number(response.moodScale) || DEFAULT_MOOD,
-    answeredAt: response.answeredAt || new Date()
+    responseDate: response.responseDate || dateKey(new Date(answeredAt)),
+    answeredAt
+  };
+}
+
+function responsePayload(response, weekIdentifier) {
+  return {
+    id: response._id?.toString(),
+    questionId: response.questionId,
+    questionKey: response.questionKey,
+    questionText: response.questionText,
+    category: response.category,
+    answerText: response.answerText,
+    moodScale: response.moodScale,
+    responseDate: response.responseDate || dateKey(response.answeredAt),
+    answeredAt: response.answeredAt,
+    weekIdentifier
   };
 }
 
@@ -52,6 +70,7 @@ function usableResponse(response) {
 
 module.exports = {
   cleanResponse,
+  responsePayload,
   responseItems,
   usableResponse
 };

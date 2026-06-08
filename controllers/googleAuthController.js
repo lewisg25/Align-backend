@@ -85,7 +85,7 @@ async function finishGoogleLogin(req, res) {
 async function loginWithGoogleCredential(req, res) {
   try {
     const profile = await googleCredentialUser(req.body.credential);
-    const user = await findOrCreateGoogleUser(profile);
+    const user = await findOrCreateGoogleUser(profile, req.body);
     const token = signToken({ sub: user._id.toString(), email: user.email });
 
     setSessionCookie(res, token);

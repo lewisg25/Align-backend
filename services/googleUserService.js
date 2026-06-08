@@ -1,4 +1,8 @@
 const User = require('../models/User');
+const {
+  relationshipData,
+  yearsFromBody
+} = require('./relationshipYears');
 
 function names(profile) {
   const [firstName, ...rest] = (profile.name || '').split(' ');
@@ -9,7 +13,7 @@ function names(profile) {
   };
 }
 
-async function findOrCreateGoogleUser(profile) {
+async function findOrCreateGoogleUser(profile, options = {}) {
   if (!profile.email_verified) {
     throw new Error('Google email is not verified.');
   }
@@ -21,7 +25,8 @@ async function findOrCreateGoogleUser(profile) {
       email: profile.email.toLowerCase(),
       authProvider: 'google',
       googleId: profile.sub,
-      avatarUrl: profile.picture || ''
+      avatarUrl: profile.picture || '',
+      ...relationshipData(yearsFromBody(options))
     },
     { new: true, upsert: true, setDefaultsOnInsert: true }
   );
