@@ -17,7 +17,6 @@ ALIGN is a relationship check-in app that helps couples stay connected through d
 
 ## Google OAuth2
 
-Add these to `.env`:
 
 ```txt
 GOOGLE_CLIENT_ID=your-google-client-id

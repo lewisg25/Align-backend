@@ -62,6 +62,8 @@ async function registerUser(body) {
     ...data,
     password: hashPassword(data.password),
     authProvider: 'local',
+    emailVerified: false,
+    emailVerifiedAt: null,
     relationshipTier: findTier(data.yearsTogether, data.relationshipTier)
   });
 

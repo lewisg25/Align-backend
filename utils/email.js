@@ -1,5 +1,4 @@
 const nodemailer = require('nodemailer');
-const { Resend } = require('resend');
 
 const buttonStyle = [
   'background:#1f6d3f',
@@ -40,13 +39,9 @@ function mailer() {
   });
 }
 
-function resendClient() {
-  return process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
-}
-
 async function sendMagicLink({ email, firstName, signInUrl, tokenMinutes }) {
-  const resend = resendClient();
-  const from = process.env.EMAIL_FROM || 'ALIGN <onboarding@resend.dev>';
+  const transporter = mailer();
+  const from = process.env.EMAIL_FROM || 'Align <no-reply@align.local>';
   const subject = 'Sign in to ALIGN';
   const text = [
     `Hi ${firstName || 'there'},`,
@@ -68,12 +63,57 @@ async function sendMagicLink({ email, firstName, signInUrl, tokenMinutes }) {
     </div>
   `;
 
-  if (!resend) {
+  if (!transporter) {
     console.log(`ALIGN sign-in link for ${email}: ${signInUrl}`);
-    return { sent: false, reason: 'Resend is not configured.' };
+    return { sent: false, reason: 'Email is not configured.' };
   }
 
-  await resend.emails.send({
+  await transporter.sendMail({
+    from,
+    to: email,
+    subject,
+    text,
+    html
+  });
+
+  return { sent: true };
+}
+
+async function sendVerificationEmail({
+  email,
+  firstName,
+  verificationUrl,
+  tokenMinutes
+}) {
+  const transporter = mailer();
+  const from = process.env.EMAIL_FROM || 'Align <no-reply@align.local>';
+  const subject = 'Verify your ALIGN email';
+  const text = [
+    `Hi ${firstName || 'there'},`,
+    '',
+    'Please verify your email address to finish setting up your ALIGN account.',
+    '',
+    verificationUrl,
+    '',
+    `This link expires in ${tokenMinutes} minutes.`
+  ].join('\n');
+  const html = `
+    <div style="${emailStyle}">
+      <h2>Verify your ALIGN email</h2>
+      <p>Hi ${firstName || 'there'}, please verify your email address to finish setting up your account.</p>
+      <p><a href="${verificationUrl}" style="${buttonStyle}">Verify email</a></p>
+      <p>This link expires in ${tokenMinutes} minutes.</p>
+      <p>If the button does not work, copy and paste this link:</p>
+      <p>${verificationUrl}</p>
+    </div>
+  `;
+
+  if (!transporter) {
+    console.log(`ALIGN verification link for ${email}: ${verificationUrl}`);
+    return { sent: false, reason: 'Email is not configured.' };
+  }
+
+  await transporter.sendMail({
     from,
     to: email,
     subject,
@@ -125,5 +165,6 @@ async function sendReminder(user) {
 
 module.exports = {
   sendMagicLink,
+  sendVerificationEmail,
   sendReminder
 };

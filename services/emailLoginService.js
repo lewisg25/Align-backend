@@ -44,10 +44,12 @@ async function findOrCreateEmailUser(email, yearsTogether) {
   const relationship = relationshipData(yearsTogether);
   const existingUser = await User.findOne({ email });
   if (existingUser) {
+    existingUser.emailVerified = true;
+    existingUser.emailVerifiedAt = existingUser.emailVerifiedAt || new Date();
     if (Object.keys(relationship).length) {
       Object.assign(existingUser, relationship);
-      await existingUser.save();
     }
+    await existingUser.save();
     return existingUser;
   }
 
@@ -55,6 +57,8 @@ async function findOrCreateEmailUser(email, yearsTogether) {
     email,
     firstName: nameFromEmail(email),
     authProvider: 'email',
+    emailVerified: true,
+    emailVerifiedAt: new Date(),
     ...relationship
   });
 }

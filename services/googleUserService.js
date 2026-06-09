@@ -25,6 +25,8 @@ async function findOrCreateGoogleUser(profile, options = {}) {
       email: profile.email.toLowerCase(),
       authProvider: 'google',
       googleId: profile.sub,
+      emailVerified: true,
+      emailVerifiedAt: new Date(),
       avatarUrl: profile.picture || '',
       ...relationshipData(yearsFromBody(options))
     },
