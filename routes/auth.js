@@ -10,7 +10,9 @@ const {
   login,
   logout,
   register,
+  resendEmailVerification,
   startEmailLogin,
+  verifyRegistrationEmail,
   verifyEmailLogin
 } = require('../controllers/authController');
 
@@ -23,6 +25,9 @@ router.get('/oauth2/authorize/google', startGoogleLogin);
 router.get('/oauth2/callback/google', finishGoogleLogin);
 router.post('/register', register);
 router.post('/login', login);
+router.post('/email-verification/start', resendEmailVerification);
+router.post('/email-verification/verify', verifyRegistrationEmail);
+router.get('/email-verification/verify', verifyRegistrationEmail);
 router.post('/email/start', startEmailLogin);
 router.post('/verify-email', verifyEmailLogin);
 router.get('/me', requireAuth, getMe);
