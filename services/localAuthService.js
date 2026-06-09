@@ -4,6 +4,7 @@ const {
   relationshipData,
   yearsFromBody
 } = require('./relationshipYears');
+const { partnerNameData, partnerNameFromBody } = require('./partnerName');
 const { hashPassword, verifyPassword } = require('../utils/password');
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -29,6 +30,7 @@ function registrationData(body) {
     lastName: (body.lastName || fallback.lastName || '').trim(),
     email: normalizeEmail(body.email || ''),
     password: body.password || '',
+    partnerName: partnerNameFromBody(body) || '',
     yearsTogether,
     yearsMarried: yearsTogether,
     relationshipTier: body.relationshipTier
@@ -84,8 +86,11 @@ async function loginUser(body) {
   }
 
   const relationship = relationshipData(yearsFromBody(body));
-  if (Object.keys(relationship).length) {
-    Object.assign(user, relationship);
+  const partner = partnerNameData(body);
+  const updates = { ...relationship, ...partner };
+
+  if (Object.keys(updates).length) {
+    Object.assign(user, updates);
     await user.save();
   }
 

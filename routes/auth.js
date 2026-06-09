@@ -12,6 +12,7 @@ const {
   register,
   resendEmailVerification,
   startEmailLogin,
+  updateMe,
   verifyRegistrationEmail,
   verifyEmailLogin
 } = require('../controllers/authController');
@@ -31,6 +32,7 @@ router.get('/email-verification/verify', verifyRegistrationEmail);
 router.post('/email/start', startEmailLogin);
 router.post('/verify-email', verifyEmailLogin);
 router.get('/me', requireAuth, getMe);
+router.patch('/me', requireAuth, updateMe);
 router.post('/logout', logout);
 
 module.exports = router;

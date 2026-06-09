@@ -15,6 +15,7 @@ function serializeUser(user) {
     emailVerifiedAt: user.emailVerifiedAt,
     avatarUrl: user.avatarUrl,
     partnerId: user.partnerId,
+    partnerName: user.partnerName || '',
     yearsTogether,
     yearsMarried: yearsTogether,
     relationshipTier: user.relationshipTier,
