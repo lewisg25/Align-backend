@@ -15,23 +15,7 @@ ALIGN is a relationship check-in app that helps couples stay connected through d
 - Helmet
 - Morgan
 
-## Google OAuth2
 
-Add these to `.env`:
-
-```txt
-GOOGLE_CLIENT_ID=your-google-client-id
-GOOGLE_CLIENT_SECRET=your-google-client-secret
-GOOGLE_REDIRECT_URI=http://localhost:8080/auth/google/callback
-GOOGLE_SUCCESS_URL=http://localhost:5173/dashboard
-```
-
-Start Google login from:
-
-```txt
-GET /auth/google
-GET /auth/oauth2/authorize/google
-```
 
 ## Project Structure
 
