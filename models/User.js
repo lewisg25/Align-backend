@@ -35,6 +35,7 @@ const userSchema = new mongoose.Schema({
     ref: 'User',
     default: null
   },
+  partnerName: { type: String, default: '', trim: true },
   yearsTogether: { type: Number, default: 0 },
   yearsMarried: { type: Number, default: undefined },
   relationshipTier: {

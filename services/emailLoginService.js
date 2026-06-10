@@ -5,6 +5,7 @@ const {
   relationshipData,
   yearsFromBody
 } = require('./relationshipYears');
+const { partnerNameData } = require('./partnerName');
 const { sendMagicLink } = require('../utils/email');
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -40,14 +41,17 @@ function magicLinkUrl(token, redirect) {
   return url.toString();
 }
 
-async function findOrCreateEmailUser(email, yearsTogether) {
+async function findOrCreateEmailUser(email, body = {}) {
+  const yearsTogether = yearsFromBody(body);
   const relationship = relationshipData(yearsTogether);
+  const partner = partnerNameData(body);
+  const updates = { ...relationship, ...partner };
   const existingUser = await User.findOne({ email });
   if (existingUser) {
     existingUser.emailVerified = true;
     existingUser.emailVerifiedAt = existingUser.emailVerifiedAt || new Date();
-    if (Object.keys(relationship).length) {
-      Object.assign(existingUser, relationship);
+    if (Object.keys(updates).length) {
+      Object.assign(existingUser, updates);
     }
     await existingUser.save();
     return existingUser;
@@ -59,7 +63,7 @@ async function findOrCreateEmailUser(email, yearsTogether) {
     authProvider: 'email',
     emailVerified: true,
     emailVerifiedAt: new Date(),
-    ...relationship
+    ...updates
   });
 }
 
@@ -71,7 +75,7 @@ async function startEmailLogin(body) {
     return { error: 'Please enter a valid email address.', status: 400 };
   }
 
-  const user = await findOrCreateEmailUser(email, yearsFromBody(body));
+  const user = await findOrCreateEmailUser(email, body);
   const token = crypto.randomBytes(32).toString('base64url');
   const expiresAt = new Date(Date.now() + tokenMinutes * 60 * 1000);
 

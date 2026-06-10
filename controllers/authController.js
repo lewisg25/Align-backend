@@ -9,6 +9,7 @@ const {
   startEmailLogin: startEmailLoginService,
   verifyEmailLogin: verifyEmailLoginService
 } = require('../services/emailLoginService');
+const { partnerNameFromBody } = require('../services/partnerName');
 const { serializeUser } = require('../services/userSerializer');
 const { signToken } = require('../utils/token');
 
@@ -157,6 +158,23 @@ function getMe(req, res) {
   return res.json({ user: serializeUser(req.user) });
 }
 
+async function updateMe(req, res) {
+  try {
+    const partnerName = partnerNameFromBody(req.body);
+
+    if (partnerName === undefined) {
+      return fail(res, 400, 'Partner name is required.');
+    }
+
+    req.user.partnerName = partnerName;
+    await req.user.save();
+
+    return res.json({ user: serializeUser(req.user) });
+  } catch (error) {
+    return fail(res, 500, 'Could not update your profile right now.');
+  }
+}
+
 function logout(req, res) {
   res.clearCookie('alignSession', {
     httpOnly: true,
@@ -175,5 +193,6 @@ module.exports = {
   startEmailLogin,
   verifyRegistrationEmail,
   verifyEmailLogin,
+  updateMe,
   serializeUser
 };

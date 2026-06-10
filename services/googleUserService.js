@@ -3,6 +3,7 @@ const {
   relationshipData,
   yearsFromBody
 } = require('./relationshipYears');
+const { partnerNameData } = require('./partnerName');
 
 function names(profile) {
   const [firstName, ...rest] = (profile.name || '').split(' ');
@@ -28,7 +29,8 @@ async function findOrCreateGoogleUser(profile, options = {}) {
       emailVerified: true,
       emailVerifiedAt: new Date(),
       avatarUrl: profile.picture || '',
-      ...relationshipData(yearsFromBody(options))
+      ...relationshipData(yearsFromBody(options)),
+      ...partnerNameData(options)
     },
     { new: true, upsert: true, setDefaultsOnInsert: true }
   );
