@@ -15,7 +15,40 @@ ALIGN is a relationship check-in app that helps couples stay connected through d
 - Helmet
 - Morgan
 
+## Email + Password Auth
 
+Classic account creation is available through:
+
+- `POST /auth/register`
+- `POST /auth/login`
+- `POST /auth/logout`
+
+The same routes are also mounted under `/api`, for example `POST /api/auth/register`.
+
+Register payload:
+
+```json
+{
+  "firstName": "Taylor",
+  "lastName": "Smith",
+  "email": "taylor@example.com",
+  "password": "password123",
+  "yearsMarried": 4
+}
+```
+
+`yearsMarried` is required for account creation and may also be sent as `marriedYears`, `marriageYears`, `yearsBeenMarried`, `years_married`, `marriage_years`, `years_been_married`, `howLongMarried`, or `how_long_married`.
+
+Login payload:
+
+```json
+{
+  "email": "taylor@example.com",
+  "password": "password123"
+}
+```
+
+Successful register and login responses include a JWT `token`, a serialized `user`, and set the `alignSession` HTTP-only cookie for browser sessions.
 
 ## Project Structure
 

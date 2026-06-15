@@ -34,6 +34,12 @@ function setSessionCookie(res, token) {
   });
 }
 
+function sendAuthResponse(res, user, extras = {}, status = 200) {
+  const response = authResponse(user, extras);
+  setSessionCookie(res, response.token);
+  return res.status(status).json(response);
+}
+
 async function register(req, res) {
   try {
     const result = await registerUser(req.body);
@@ -49,11 +55,11 @@ async function register(req, res) {
       console.error('Could not send verification email:', emailError.message);
     }
 
-    return res.status(201).json(authResponse(result.user, {
+    return sendAuthResponse(res, result.user, {
       message: 'Thank you for signing up. Please verify your email address.',
       requiresEmailVerification: !result.user.emailVerified,
       verificationEmailSent: Boolean(verificationEmail.sent)
-    }));
+    }, 201);
   } catch (error) {
     if (error.code === 11000) {
       return fail(res, 409, 'An account already exists with that email.');
@@ -70,7 +76,7 @@ async function login(req, res) {
       return fail(res, result.status, result.error);
     }
 
-    return res.json(authResponse(result.user));
+    return sendAuthResponse(res, result.user);
   } catch (error) {
     return fail(res, 500, 'Could not log you in right now.');
   }
