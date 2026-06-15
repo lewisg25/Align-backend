@@ -2,7 +2,9 @@ const User = require('../models/User');
 const { findTier } = require('./relationshipTier');
 const {
   relationshipData,
-  yearsFromBody
+  yearsFromBody,
+  yearsMarriedFromBody,
+  yearsTogetherFromBody
 } = require('./relationshipYears');
 const { partnerNameData, partnerNameFromBody } = require('./partnerName');
 const { hashPassword, verifyPassword } = require('../utils/password');
@@ -23,7 +25,8 @@ function splitName(name = '') {
 
 function registrationData(body) {
   const fallback = splitName(body.name);
-  const yearsTogether = yearsFromBody(body) ?? 0;
+  const yearsMarried = yearsMarriedFromBody(body) ?? yearsFromBody(body);
+  const yearsTogether = yearsTogetherFromBody(body) ?? yearsMarried ?? 0;
 
   return {
     firstName: (body.firstName || fallback.firstName || '').trim(),
@@ -32,7 +35,7 @@ function registrationData(body) {
     password: body.password || '',
     partnerName: partnerNameFromBody(body) || '',
     yearsTogether,
-    yearsMarried: yearsTogether,
+    yearsMarried,
     relationshipTier: body.relationshipTier
   };
 }
@@ -46,6 +49,9 @@ function validateRegistration(data) {
   }
   if (data.password.length < 8) {
     return 'Password must be at least 8 characters.';
+  }
+  if (data.yearsMarried === undefined) {
+    return 'Please enter how long you have been married.';
   }
   return null;
 }

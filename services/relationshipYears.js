@@ -1,11 +1,25 @@
 const { findTier } = require('./relationshipTier');
 
-const yearFields = [
+const yearsTogetherFields = [
   'yearsTogether',
+  'years_together'
+];
+
+const yearsMarriedFields = [
   'yearsMarried',
   'marriedYears',
-  'years_together',
-  'years_married'
+  'marriageYears',
+  'yearsBeenMarried',
+  'years_married',
+  'marriage_years',
+  'years_been_married',
+  'howLongMarried',
+  'how_long_married'
+];
+
+const yearFields = [
+  ...yearsTogetherFields,
+  ...yearsMarriedFields
 ];
 
 function normalizeYears(value) {
@@ -18,12 +32,24 @@ function normalizeYears(value) {
 }
 
 function yearsFromBody(body = {}) {
-  for (const field of yearFields) {
+  return yearsFromFields(body, yearFields);
+}
+
+function yearsFromFields(body = {}, fields = []) {
+  for (const field of fields) {
     const years = normalizeYears(body[field]);
     if (years !== undefined) return years;
   }
 
   return undefined;
+}
+
+function yearsMarriedFromBody(body = {}) {
+  return yearsFromFields(body, yearsMarriedFields);
+}
+
+function yearsTogetherFromBody(body = {}) {
+  return yearsFromFields(body, yearsTogetherFields);
 }
 
 function relationshipData(years) {
@@ -51,6 +77,8 @@ function yearsForUser(user = {}) {
 module.exports = {
   normalizeYears,
   relationshipData,
+  yearsMarriedFromBody,
   yearsForUser,
-  yearsFromBody
+  yearsFromBody,
+  yearsTogetherFromBody
 };

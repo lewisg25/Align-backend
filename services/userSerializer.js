@@ -1,9 +1,11 @@
-const { yearsForUser } = require('./relationshipYears');
+const { normalizeYears, yearsForUser } = require('./relationshipYears');
 
 const DEFAULT_TIME = '09:00';
 
 function serializeUser(user) {
-  const yearsTogether = yearsForUser(user);
+  const fallbackYears = yearsForUser(user);
+  const yearsTogether = normalizeYears(user.yearsTogether) ?? fallbackYears;
+  const yearsMarried = normalizeYears(user.yearsMarried) ?? fallbackYears;
 
   return {
     id: user._id.toString(),
@@ -17,7 +19,7 @@ function serializeUser(user) {
     partnerId: user.partnerId,
     partnerName: user.partnerName || '',
     yearsTogether,
-    yearsMarried: yearsTogether,
+    yearsMarried,
     relationshipTier: user.relationshipTier,
     isPremium: user.isPremium,
     currentStreak: user.currentStreak,
