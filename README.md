@@ -10,6 +10,7 @@ ALIGN is a relationship check-in app that helps couples stay connected through d
 - MongoDB + Mongoose
 - CommonJS
 - JWT authentication
+- Resend email delivery
 - Dotenv
 - CORS
 - Helmet
@@ -59,6 +60,15 @@ Verify payload:
 ```
 
 Successful verification returns a JWT `token`, a serialized `user`, and sets the `alignSession` HTTP-only cookie for browser sessions.
+
+Email delivery uses Resend. Add these to your backend `.env`:
+
+```txt
+RESEND_API_KEY="re_..."
+EMAIL_FROM="ALIGN <hello@yourdomain.com>"
+```
+
+The backend also accepts `RESEND_API` for the API key and `RESEND_EMAIL` for the sender address. Your sender should use a domain you verified in Resend. If no Resend API key is set, the backend prints sign-in codes and links in the server logs for local development.
 
 ## Legacy Email + Password Auth
 
