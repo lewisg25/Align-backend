@@ -1,18 +1,33 @@
 const crypto = require('crypto');
 const EmailLoginToken = require('../models/EmailLoginToken');
 const User = require('../models/User');
-const {
-  relationshipData,
-  yearsFromBody
-} = require('./relationshipYears');
+const { relationshipData, yearsFromBody } = require('./relationshipYears');
 const { partnerNameData } = require('./partnerName');
-const { sendMagicLink } = require('../utils/email');
+const { sendLoginCode } = require('../utils/email');
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const tokenMinutes = 30;
+const codeMinutes = 10;
 
 function normalizeEmail(email = '') {
   return email.trim().toLowerCase();
+}
+
+function cleanText(value = '') {
+  return String(value || '').trim();
+}
+
+function splitName(name = '') {
+  const parts = cleanText(name).split(/\s+/).filter(Boolean);
+  return {
+    firstName: parts.shift() || '',
+    lastName: parts.join(' ')
+  };
+}
+
+function nameFromEmail(email) {
+  const [name = 'there'] = email.split('@');
+  const firstName = name.split(/[._-]/).filter(Boolean)[0] || 'there';
+  return firstName.charAt(0).toUpperCase() + firstName.slice(1);
 }
 
 function safeRedirectPath(value) {
@@ -23,51 +38,100 @@ function safeRedirectPath(value) {
   return value;
 }
 
-function nameFromEmail(email) {
-  const [name = 'there'] = email.split('@');
-  const firstName = name.split(/[._-]/).filter(Boolean)[0] || 'there';
-  return firstName.charAt(0).toUpperCase() + firstName.slice(1);
+function loginCodeSecret() {
+  return process.env.EMAIL_LOGIN_CODE_SECRET ||
+    process.env.JWT_SECRET ||
+    'align-development-login-code-secret';
 }
 
-function hashToken(token) {
-  return crypto.createHash('sha256').update(token).digest('hex');
+function loginCode() {
+  return crypto.randomInt(100000, 1000000).toString();
 }
 
-function magicLinkUrl(token, redirect) {
-  const baseUrl = process.env.CLIENT_URL || 'http://localhost:5173';
-  const url = new URL('/verify-email', baseUrl);
-  url.searchParams.set('token', token);
-  url.searchParams.set('redirect', redirect);
-  return url.toString();
+function hashCode(email, code) {
+  return crypto
+    .createHmac('sha256', loginCodeSecret())
+    .update(`${normalizeEmail(email)}:${code}`)
+    .digest('hex');
 }
 
-async function findOrCreateEmailUser(email, body = {}) {
-  const yearsTogether = yearsFromBody(body);
-  const relationship = relationshipData(yearsTogether);
-  const partner = partnerNameData(body);
-  const updates = { ...relationship, ...partner };
-  const existingUser = await User.findOne({ email });
-  if (existingUser) {
-    existingUser.emailVerified = true;
-    existingUser.emailVerifiedAt = existingUser.emailVerifiedAt || new Date();
-    if (Object.keys(updates).length) {
-      Object.assign(existingUser, updates);
+async function findEmailUser(email) {
+  return User.findOne({ email });
+}
+
+function accountProfile(body, email) {
+  const fallback = splitName(body.name || body.userName);
+  const years = yearsFromBody(body);
+
+  return {
+    firstName: cleanText(body.firstName) || fallback.firstName || nameFromEmail(email),
+    lastName: cleanText(body.lastName) || fallback.lastName,
+    years,
+    fields: {
+      ...relationshipData(years),
+      ...partnerNameData(body)
     }
-    await existingUser.save();
-    return existingUser;
+  };
+}
+
+function validateAccountProfile(profile) {
+  if (!profile.firstName) {
+    return 'Your name is required.';
+  }
+  if (!profile.fields.partnerName) {
+    return 'Partner name is required.';
+  }
+  if (profile.years === undefined) {
+    return 'Please enter how long you have been married.';
+  }
+  return null;
+}
+
+async function findOrCreateEmailUser(email, body) {
+  const existingUser = await findEmailUser(email);
+
+  if (existingUser) {
+    if (body.createAccount && !existingUser.emailVerified) {
+      const profile = accountProfile(body, email);
+      const error = validateAccountProfile(profile);
+      if (error) return { error, status: 400 };
+
+      Object.assign(existingUser, {
+        firstName: profile.firstName,
+        lastName: profile.lastName,
+        ...profile.fields
+      });
+      await existingUser.save();
+    }
+
+    return { user: existingUser, isNewUser: false };
   }
 
-  return User.create({
+  if (!body.createAccount) {
+    return {
+      error: 'No account found for that email. Please create an account first.',
+      status: 404
+    };
+  }
+
+  const profile = accountProfile(body, email);
+  const error = validateAccountProfile(profile);
+  if (error) return { error, status: 400 };
+
+  const user = await User.create({
     email,
-    firstName: nameFromEmail(email),
+    firstName: profile.firstName,
+    lastName: profile.lastName,
     authProvider: 'email',
-    emailVerified: true,
-    emailVerifiedAt: new Date(),
-    ...updates
+    emailVerified: false,
+    emailVerifiedAt: null,
+    ...profile.fields
   });
+
+  return { user, isNewUser: true };
 }
 
-async function startEmailLogin(body) {
+async function startEmailLogin(body = {}) {
   const email = normalizeEmail(body.email);
   const redirect = safeRedirectPath(body.redirect);
 
@@ -75,41 +139,61 @@ async function startEmailLogin(body) {
     return { error: 'Please enter a valid email address.', status: 400 };
   }
 
-  const user = await findOrCreateEmailUser(email, body);
-  const token = crypto.randomBytes(32).toString('base64url');
-  const expiresAt = new Date(Date.now() + tokenMinutes * 60 * 1000);
+  const account = await findOrCreateEmailUser(email, body);
+  if (account.error) {
+    return account;
+  }
+
+  const code = loginCode();
+  const expiresAt = new Date(Date.now() + codeMinutes * 60 * 1000);
+
+  await EmailLoginToken.updateMany(
+    { email, usedAt: null },
+    { usedAt: new Date() }
+  );
 
   await EmailLoginToken.create({
     email,
-    userId: user._id,
-    tokenHash: hashToken(token),
+    userId: account.user._id,
+    tokenHash: hashCode(email, code),
     redirect,
     expiresAt
   });
 
-  await sendMagicLink({
+  await sendLoginCode({
     email,
-    firstName: user.firstName,
-    signInUrl: magicLinkUrl(token, redirect),
-    tokenMinutes
+    firstName: account.user.firstName,
+    code,
+    codeMinutes
   });
 
-  return { message: 'Check your email for your sign-in link.' };
+  return {
+    message: 'Check your email for your sign-in code.',
+    isNewUser: account.isNewUser
+  };
 }
 
-async function verifyEmailLogin(token) {
-  if (!token) {
-    return { error: 'Verification token is required.', status: 400 };
+async function verifyEmailLogin(body = {}) {
+  const email = normalizeEmail(body.email);
+  const code = String(body.code || '').trim();
+
+  if (!emailPattern.test(email)) {
+    return { error: 'Please enter a valid email address.', status: 400 };
+  }
+
+  if (!/^\d{6}$/.test(code)) {
+    return { error: 'Please enter the 6-digit sign-in code.', status: 400 };
   }
 
   const loginToken = await EmailLoginToken.findOne({
-    tokenHash: hashToken(token),
+    email,
+    tokenHash: hashCode(email, code),
     usedAt: null,
     expiresAt: { $gt: new Date() }
   });
 
   if (!loginToken) {
-    return { error: 'This sign-in link is invalid or expired.', status: 400 };
+    return { error: 'This sign-in code is invalid or expired.', status: 400 };
   }
 
   const user = await User.findById(loginToken.userId);
@@ -117,8 +201,13 @@ async function verifyEmailLogin(token) {
     return { error: 'We could not find this account.', status: 404 };
   }
 
+  user.emailVerified = true;
+  user.emailVerifiedAt = user.emailVerifiedAt || new Date();
+  if (!['local', 'email'].includes(user.authProvider)) {
+    user.authProvider = 'email';
+  }
   loginToken.usedAt = new Date();
-  await loginToken.save();
+  await Promise.all([user.save(), loginToken.save()]);
 
   return { user, redirect: loginToken.redirect };
 }

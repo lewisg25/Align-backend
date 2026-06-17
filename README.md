@@ -10,12 +10,67 @@ ALIGN is a relationship check-in app that helps couples stay connected through d
 - MongoDB + Mongoose
 - CommonJS
 - JWT authentication
+- Resend email delivery
 - Dotenv
 - CORS
 - Helmet
 - Morgan
 
-## Email + Password Auth
+## Passwordless Email Auth
+
+The main auth flow sends a 6-digit code by email:
+
+- `POST /auth/email/start`
+- `POST /auth/email/verify`
+
+The same routes are also mounted under `/api`. These clearer aliases are also available:
+
+- `POST /auth/magic/request-code`
+- `POST /auth/magic/verify-code`
+
+Returning user start payload:
+
+```json
+{
+  "email": "taylor@example.com"
+}
+```
+
+First-time account start payload:
+
+```json
+{
+  "email": "taylor@example.com",
+  "createAccount": true,
+  "firstName": "Taylor",
+  "partnerName": "Jordan",
+  "yearsMarried": 4
+}
+```
+
+The backend sends a 6-digit code to the user. If SMTP is not configured, the code is printed in the server logs for local development.
+
+Verify payload:
+
+```json
+{
+  "email": "taylor@example.com",
+  "code": "123456"
+}
+```
+
+Successful verification returns a JWT `token`, a serialized `user`, and sets the `alignSession` HTTP-only cookie for browser sessions.
+
+Email delivery uses Resend. Add these to your backend `.env`:
+
+```txt
+RESEND_API_KEY="re_..."
+EMAIL_FROM="ALIGN <hello@yourdomain.com>"
+```
+
+The backend also accepts `RESEND_API` for the API key and `RESEND_EMAIL` for the sender address. Your sender should use a domain you verified in Resend. If no Resend API key is set, the backend prints sign-in codes and links in the server logs for local development.
+
+## Legacy Email + Password Auth
 
 Classic account creation is available through:
 
