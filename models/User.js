@@ -21,13 +21,8 @@ const userSchema = new mongoose.Schema({
   },
   authProvider: {
     type: String,
-    enum: ['local', 'google', 'email'],
+    enum: ['local', 'email'],
     default: 'local'
-  },
-  googleId: {
-    type: String,
-    unique: true,
-    sparse: true
   },
   avatarUrl: { type: String, default: '' },
   partnerId: {

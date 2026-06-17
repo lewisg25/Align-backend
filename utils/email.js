@@ -39,32 +39,30 @@ function mailer() {
   });
 }
 
-async function sendMagicLink({ email, firstName, signInUrl, tokenMinutes }) {
+async function sendLoginCode({ email, firstName, code, codeMinutes }) {
   const transporter = mailer();
   const from = process.env.EMAIL_FROM || 'Align <no-reply@align.local>';
   const subject = 'Sign in to ALIGN';
   const text = [
     `Hi ${firstName || 'there'},`,
     '',
-    'Click the link below to sign in to your ALIGN dashboard.',
+    'Use this code to sign in to your ALIGN dashboard:',
     '',
-    signInUrl,
+    code,
     '',
-    `This link expires in ${tokenMinutes} minutes.`
+    `This code expires in ${codeMinutes} minutes.`
   ].join('\n');
   const html = `
     <div style="${emailStyle}">
       <h2>Sign in to ALIGN</h2>
-      <p>Hi ${firstName || 'there'}, click below to access your dashboard.</p>
-      <p><a href="${signInUrl}" style="${buttonStyle}">Sign in</a></p>
-      <p>This link expires in ${tokenMinutes} minutes.</p>
-      <p>If the button does not work, copy and paste this link:</p>
-      <p>${signInUrl}</p>
+      <p>Hi ${firstName || 'there'}, use this code to access your dashboard.</p>
+      <p style="font-size:28px;letter-spacing:4px;font-weight:bold;">${code}</p>
+      <p>This code expires in ${codeMinutes} minutes.</p>
     </div>
   `;
 
   if (!transporter) {
-    console.log(`ALIGN sign-in link for ${email}: ${signInUrl}`);
+    console.log(`ALIGN sign-in code for ${email}: ${code}`);
     return { sent: false, reason: 'Email is not configured.' };
   }
 
@@ -164,7 +162,7 @@ async function sendReminder(user) {
 }
 
 module.exports = {
-  sendMagicLink,
+  sendLoginCode,
   sendVerificationEmail,
   sendReminder
 };

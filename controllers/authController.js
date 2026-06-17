@@ -135,28 +135,24 @@ async function startEmailLogin(req, res) {
 
     return res.json(result);
   } catch (error) {
-    return fail(res, 500, 'Could not send your sign-in link right now.');
+    return fail(res, 500, 'Could not send your sign-in code right now.');
   }
 }
 
 async function verifyEmailLogin(req, res) {
   try {
-    const result = await verifyEmailLoginService(req.body.token);
+    const result = await verifyEmailLoginService(req.body);
 
     if (result.error) {
       return fail(res, result.status, result.error);
     }
 
-    const token = signToken({ sub: result.user._id.toString(), email: result.user.email });
-    setSessionCookie(res, token);
-
-    return res.json({
-      user: serializeUser(result.user),
+    return sendAuthResponse(res, result.user, {
       redirect: result.redirect,
-      message: 'Your email has been verified.'
+      message: 'You are signed in.'
     });
   } catch (error) {
-    return fail(res, 500, 'Could not verify your email right now.');
+    return fail(res, 500, 'Could not verify your sign-in code right now.');
   }
 }
 
