@@ -65,7 +65,7 @@ async function sendOrLog(email, fallbackLog) {
 }
 
 async function sendLoginCode({ email, firstName, code, codeMinutes }) {
-  // const subject = 'Your ALIGN code';
+  const subject = 'Your ALIGN code';
   const text = [
     `Hi ${firstName || 'there'},`,
     '',
