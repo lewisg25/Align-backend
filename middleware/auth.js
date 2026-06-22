@@ -16,12 +16,6 @@ async function requireAuth(req, res, next) {
     ? token
     : cookieValue(req.headers.cookie, 'alignSession');
 
-  if (!sessionToken) {
-    return res.status(401).json({
-      message: 'You must be logged in to access this route.'
-    });
-  }
-
   try {
     const payload = verifyToken(sessionToken);
     const user = await User.findById(payload.sub);
