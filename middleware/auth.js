@@ -29,9 +29,7 @@ async function requireAuth(req, res, next) {
     req.user = user;
     return next();
   } catch (error) {
-    return res.status(401).json({
-      message: 'Your session has expired. Please log in again.'
-    });
+    return res.status(401).end();
   }
 }
 
