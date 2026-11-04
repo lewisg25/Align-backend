@@ -28,6 +28,9 @@ async function sendEmail({ to, subject, text, html }) {
   const apiKey = process.env.RESEND_API_KEY || process.env.RESEND_API;
 
   if (!apiKey) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('RESEND_API_KEY must be set in production.');
+    }
     return { sent: false, reason: 'Resend is not configured.' };
   }
 

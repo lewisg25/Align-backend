@@ -16,6 +16,16 @@ ALIGN is a relationship check-in app that helps couples stay connected through d
 - Helmet
 - Morgan
 
+## Setup
+
+1. Create a MongoDB database (for example, a MongoDB Atlas cluster) and copy its connection string.
+2. Copy `.env.example` to `.env` and set `MONGO_URI` to that connection string. Add a long, random `JWT_SECRET` and a separate `EMAIL_LOGIN_CODE_SECRET`.
+3. In Resend, create an API key and verify the domain used in `EMAIL_FROM`. Set `RESEND_API_KEY` and `EMAIL_FROM` in `.env`.
+4. Set `CLIENT_URL` to the frontend origin and `PUBLIC_API_URL` to the public backend URL when deploying.
+5. Run `npm install`, then `npm run dev`.
+
+The app connects to MongoDB before starting its HTTP server. User accounts, one-time sign-in codes, and verification tokens are stored in MongoDB.
+
 ## Passwordless Email Auth
 
 The main auth flow sends a 6-digit code by email:
@@ -48,7 +58,7 @@ First-time account start payload:
 }
 ```
 
-The backend sends a 6-digit code to the user. If SMTP is not configured, the code is printed in the server logs for local development.
+The backend sends a 6-digit code to the user through Resend. If Resend is not configured, the code is printed in the server logs only in development.
 
 Verify payload:
 
@@ -68,7 +78,7 @@ RESEND_API_KEY="re_..."
 EMAIL_FROM="ALIGN <hello@yourdomain.com>"
 ```
 
-The backend also accepts `RESEND_API` for the API key and `RESEND_EMAIL` for the sender address. Your sender should use a domain you verified in Resend. If no Resend API key is set, the backend prints sign-in codes and links in the server logs for local development.
+The backend also accepts `RESEND_API` for the API key and `RESEND_EMAIL` for the sender address. Your sender should use a domain you verified in Resend. In production, missing Resend configuration causes email sending to fail instead of pretending a sign-in code was delivered.
 
 ## Legacy Email + Password Auth
 
