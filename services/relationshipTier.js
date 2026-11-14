@@ -1,5 +1,7 @@
+const SPECIFIC_TIERS = ['1-3_years', '5-7_years'];
+
 function findTier(yearsTogether, savedTier) {
-  if (savedTier && savedTier !== 'other') return savedTier;
+  if (SPECIFIC_TIERS.includes(savedTier)) return savedTier;
 
   const years = Number(yearsTogether);
   if (years >= 1 && years <= 3) return '1-3_years';

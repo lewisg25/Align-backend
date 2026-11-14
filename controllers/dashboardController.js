@@ -15,9 +15,8 @@ async function getDashboard(req, res) {
       questions: dailyCheckIn.questions,
     });
   } catch (error) {
-    res
-      .status(500)
-      .json({ error: 'Failed to load dashboard: ' + error.message });
+    console.error('Failed to load dashboard:', error);
+    res.status(500).json({ error: 'Failed to load dashboard.' });
   }
 }
 

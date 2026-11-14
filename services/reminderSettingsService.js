@@ -22,7 +22,10 @@ async function updateReminder(user, body) {
     throw new ServiceError(400, 'Reminder time must look like 09:00.', 'message');
   }
 
-  if (enabled !== undefined) user.reminderEnabled = Boolean(enabled);
+  // Form posts send "false" as a string, which Boolean() would treat as true.
+  if (enabled !== undefined) {
+    user.reminderEnabled = enabled === true || enabled === 'true' || enabled === 'on' || enabled === 1 || enabled === '1';
+  }
   user.reminderTime = reminderTime;
   await user.save();
 

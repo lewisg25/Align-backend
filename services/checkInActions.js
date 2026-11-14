@@ -8,18 +8,21 @@ const {
 } = require('./checkInResponses');
 const {
   findOrCreate,
-  replaceCheckIn,
+  upsertResponses,
   weekId
 } = require('./checkInStore');
 const { updateStreak } = require('./streakService');
 const CheckIn = require('../models/checkIns');
+const mongoose = require('mongoose');
+
+function assertResponseId(responseId) {
+  if (!mongoose.isValidObjectId(responseId)) {
+    throw new ServiceError(404, 'Saved response was not found.');
+  }
+}
 
 async function getQuestions(user) {
-  try {
-    return await dailyQuestions(user);
-  } catch (error) {
-    throw new ServiceError(500, 'Failed to retrieve questions: ' + error.message);
-  }
+  return dailyQuestions(user);
 }
 
 async function submitCheckIn(user, body) {
@@ -30,9 +33,14 @@ async function submitCheckIn(user, body) {
     throw new ServiceError(400, 'At least one answered question is required.');
   }
 
+  const checkIn = await findOrCreate(user, currentWeekId);
+  upsertResponses(checkIn, responses);
+  checkIn.isCompleted = true;
+  await checkIn.save();
+
   return {
     message: 'Check-in submitted successfully',
-    checkIn: await replaceCheckIn(user, currentWeekId, responses),
+    checkIn,
     streak: await updateStreak(user)
   };
 }
@@ -46,12 +54,7 @@ async function saveResponse(user, body) {
   }
 
   const checkIn = await findOrCreate(user, currentWeekId);
-  const saved = checkIn.responses.find((item) => {
-    return item.questionKey === response.questionKey;
-  });
-
-  if (saved) Object.assign(saved, response);
-  else checkIn.responses.push(response);
+  const [saved] = upsertResponses(checkIn, [response]);
 
   checkIn.isCompleted = true;
   await checkIn.save();
@@ -60,7 +63,7 @@ async function saveResponse(user, body) {
     message: 'Thank you for your response.',
     weekIdentifier: currentWeekId,
     checkInId: checkIn._id,
-    response: responsePayload(saved || checkIn.responses[checkIn.responses.length - 1], currentWeekId),
+    response: responsePayload(saved, currentWeekId),
     responses: checkIn.responses,
     streak: await updateStreak(user)
   };
@@ -80,6 +83,7 @@ async function getResponses(user) {
 }
 
 async function updateResponse(user, responseId, body) {
+  assertResponseId(responseId);
   const checkIn = await CheckIn.findOne({ user: user._id, 'responses._id': responseId });
   const saved = checkIn?.responses.id(responseId);
 
@@ -87,7 +91,12 @@ async function updateResponse(user, responseId, body) {
     throw new ServiceError(404, 'Saved response was not found.');
   }
 
-  const response = cleanResponse({ ...saved.toObject(), ...body });
+  // Drop the response's own id fields so cleanResponse doesn't mistake them
+  // for the question's id, and keep the original questionKey so the edit
+  // stays linked to the same question.
+  const { _id, id, ...existing } = saved.toObject();
+  const { _id: bodyMongoId, id: bodyId, questionKey: bodyKey, ...changes } = body || {};
+  const response = cleanResponse({ ...existing, ...changes, questionKey: existing.questionKey });
 
   if (!usableResponse(response)) {
     throw new ServiceError(400, 'Question text and answer text are required.');
@@ -105,6 +114,7 @@ async function updateResponse(user, responseId, body) {
 }
 
 async function deleteResponse(user, responseId) {
+  assertResponseId(responseId);
   const checkIn = await CheckIn.findOne({ user: user._id, 'responses._id': responseId });
   const saved = checkIn?.responses.id(responseId);
 
@@ -125,7 +135,7 @@ async function deleteResponse(user, responseId) {
 }
 
 async function weeklySummary(user, requestedWeekId) {
-  const currentWeekId = requestedWeekId || weekId({});
+  const currentWeekId = weekId({ weekIdentifier: requestedWeekId });
   const checkIn = await CheckIn.findOne({ user: user._id, weekIdentifier: currentWeekId });
   const insights = (checkIn?.responses || []).map((response) => ({
     category: response.category,

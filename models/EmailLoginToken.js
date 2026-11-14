@@ -29,6 +29,10 @@ const emailLoginTokenSchema = new mongoose.Schema({
   usedAt: {
     type: Date,
     default: null
+  },
+  attempts: {
+    type: Number,
+    default: 0
   }
 }, { timestamps: true });
 

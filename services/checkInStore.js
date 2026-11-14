@@ -1,8 +1,18 @@
 const CheckIn = require('../models/checkIns');
+const ServiceError = require('./serviceError');
 const { currentWeek } = require('./dateService');
 
-function weekId(body) {
-  return body.weekIdentifier || currentWeek();
+const WEEK_ID_RE = /^\d{4}-W\d{2}$/;
+
+function weekId(body = {}) {
+  const requested = body.weekIdentifier;
+  if (requested === undefined || requested === null || requested === '') {
+    return currentWeek();
+  }
+  if (typeof requested !== 'string' || !WEEK_ID_RE.test(requested)) {
+    throw new ServiceError(400, 'Week identifier must look like 2026-W22.');
+  }
+  return requested;
 }
 
 function query(user, weekIdentifier) {
@@ -11,20 +21,6 @@ function query(user, weekIdentifier) {
 
 function partnerId(user) {
   return user.partnerId || null;
-}
-
-async function replaceCheckIn(user, weekIdentifier, responses) {
-  return CheckIn.findOneAndUpdate(
-    query(user, weekIdentifier),
-    {
-      weekIdentifier,
-      user: user._id,
-      partner: partnerId(user),
-      responses,
-      isCompleted: true
-    },
-    { new: true, upsert: true, runValidators: true }
-  );
 }
 
 async function findOrCreate(user, weekIdentifier) {
@@ -39,8 +35,26 @@ async function findOrCreate(user, weekIdentifier) {
   });
 }
 
+// Adds each response to the check-in, replacing any earlier answer to the
+// same question, and leaves answers to other questions untouched.
+function upsertResponses(checkIn, responses) {
+  return responses.map((response) => {
+    const saved = checkIn.responses.find((item) => {
+      return item.questionKey === response.questionKey;
+    });
+
+    if (saved) {
+      Object.assign(saved, response);
+      return saved;
+    }
+
+    checkIn.responses.push(response);
+    return checkIn.responses[checkIn.responses.length - 1];
+  });
+}
+
 module.exports = {
   findOrCreate,
-  replaceCheckIn,
+  upsertResponses,
   weekId
 };

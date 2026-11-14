@@ -1,16 +1,15 @@
+// Load .env before any other module so every require sees the variables.
+require("dotenv").config();
 
 const express = require("express");
 const morgan = require("morgan");
 const helmet = require("helmet");
-const dotenv = require("dotenv");
 const cors = require("cors");
 const connectDB = require("./config/db");
 const authRoutes = require("./routes/auth");
 const dashboardRoutes = require("./routes/dashBoard");
 const checkInRoutes = require("./routes/checkIns");
 const { startReminder } = require("./services/dailyReminder");
-
-dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 8080;
@@ -54,6 +53,20 @@ for (const prefix of ["", "/api"]) {
   app.use(`${prefix}/dashboard`, dashboardRoutes);
   app.use(`${prefix}/check-ins`, checkInRoutes);
 }
+
+app.use((req, res) => {
+  res.status(404).json({ message: "Not found." });
+});
+
+// Return JSON (not Express's default HTML page) for errors such as malformed
+// JSON bodies, and never leak stack traces to clients.
+app.use((err, req, res, next) => {
+  const status = err.status || err.statusCode || 500;
+  if (status >= 500) console.error(err);
+  res.status(status).json({
+    message: status >= 500 ? "Something went wrong." : err.expose ? err.message : "Bad request.",
+  });
+});
 
 async function startServer() {
   await connectDB();
