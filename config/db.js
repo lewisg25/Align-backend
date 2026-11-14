@@ -1,6 +1,11 @@
 const mongoose = require('mongoose');
 
 async function connectDb() {
+  if (!process.env.MONGO_URI) {
+    console.error('Database connection error: MONGO_URI is not set. Add it to your .env file.');
+    process.exit(1);
+  }
+
   try {
     const db = await mongoose.connect(process.env.MONGO_URI);
     console.log(`MongoDB connected: ${db.connection.host}`);

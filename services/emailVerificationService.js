@@ -6,7 +6,7 @@ const { sendVerificationEmail } = require('../utils/email');
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function normalizeEmail(email = '') {
-  return email.trim().toLowerCase();
+  return String(email || '').trim().toLowerCase();
 }
 
 function hashToken(token) {

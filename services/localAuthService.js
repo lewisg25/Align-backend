@@ -12,7 +12,7 @@ const { hashPassword, verifyPassword } = require('../utils/password');
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function normalizeEmail(email = '') {
-  return email.trim().toLowerCase();
+  return String(email || '').trim().toLowerCase();
 }
 
 function splitName(name = '') {

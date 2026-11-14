@@ -16,6 +16,10 @@ async function requireAuth(req, res, next) {
     ? token
     : cookieValue(req.headers.cookie, 'alignSession');
 
+  if (!sessionToken) {
+    return res.status(401).json({ message: 'Please sign in to continue.' });
+  }
+
   try {
     const payload = verifyToken(sessionToken);
     const user = await User.findById(payload.sub);
@@ -29,7 +33,7 @@ async function requireAuth(req, res, next) {
     req.user = user;
     return next();
   } catch (error) {
-    return res.status(401).end();
+    return res.status(401).json({ message: 'Your session is no longer valid.' });
   }
 }
 

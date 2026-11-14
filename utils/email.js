@@ -14,6 +14,15 @@ const emailStyle = [
   'color: #17211c'
 ].join(';');
 
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function clientUrl() {
   return process.env.CLIENT_URL || 'http://localhost:5173';
 }
@@ -81,8 +90,8 @@ async function sendLoginCode({ email, firstName, code, codeMinutes }) {
   const html = `
     <div style="${emailStyle}">
       <h2>Your sign-in code</h2>
-      <p>Hi ${firstName || 'there'}, use this code to access your dashboard.</p>
-      <p style="font-size:28px;letter-spacing:4px;font-weight:bold;">${code}</p>
+      <p>Hi ${escapeHtml(firstName || 'there')}, use this code to access your dashboard.</p>
+      <p style="font-size:28px;letter-spacing:4px;font-weight:bold;">${escapeHtml(code)}</p>
       <p>This code expires in ${codeMinutes} minutes.</p>
     </div>
   `;
@@ -112,11 +121,11 @@ async function sendVerificationEmail({
   const html = `
     <div style="${emailStyle}">
       <h2>Verify your ALIGN email</h2>
-      <p>Hi ${firstName || 'there'}, please verify your email address to finish setting up your account.</p>
-      <p><a href="${verificationUrl}" style="${buttonStyle}">Verify email</a></p>
+      <p>Hi ${escapeHtml(firstName || 'there')}, please verify your email address to finish setting up your account.</p>
+      <p><a href="${escapeHtml(verificationUrl)}" style="${buttonStyle}">Verify email</a></p>
       <p>This link expires in ${tokenMinutes} minutes.</p>
       <p>If the button does not work, copy and paste this link:</p>
-      <p>${verificationUrl}</p>
+      <p>${escapeHtml(verificationUrl)}</p>
     </div>
   `;
 
@@ -139,10 +148,10 @@ async function sendReminder(user) {
   const html = `
     <div style="${emailStyle}">
       <h2>Your daily check-in is ready.</h2>
-      <p>Hi ${user.firstName}, take a minute to stay aligned today.</p>
-      <p><a href="${checkUrl}" style="${buttonStyle}">Start check-in</a></p>
+      <p>Hi ${escapeHtml(user.firstName)}, take a minute to stay aligned today.</p>
+      <p><a href="${escapeHtml(checkUrl)}" style="${buttonStyle}">Start check-in</a></p>
       <p>If the button does not work, copy and paste this link:</p>
-      <p>${checkUrl}</p>
+      <p>${escapeHtml(checkUrl)}</p>
     </div>
   `;
 

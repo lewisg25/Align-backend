@@ -15,6 +15,8 @@ function fail(res, error, fallback) {
   const key = error.key || 'error';
   const message = error.status ? error.message : fallback;
 
+  if (!error.status) console.error(fallback, error);
+
   return res.status(status).json({ [key]: message });
 }
 

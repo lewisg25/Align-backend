@@ -7,9 +7,16 @@ const { sendLoginCode } = require('../utils/email');
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const codeMinutes = 10;
+const MAX_CODE_ATTEMPTS = 5;
+
+function hashesMatch(savedHash, candidateHash) {
+  const saved = Buffer.from(String(savedHash), 'hex');
+  const candidate = Buffer.from(candidateHash, 'hex');
+  return saved.length === candidate.length && crypto.timingSafeEqual(saved, candidate);
+}
 
 function normalizeEmail(email = '') {
-  return email.trim().toLowerCase();
+  return String(email || '').trim().toLowerCase();
 }
 
 function cleanText(value = '') {
@@ -185,15 +192,35 @@ async function verifyEmailLogin(body = {}) {
     return { error: 'Please enter the 6-digit sign-in code.', status: 400 };
   }
 
-  const loginToken = await EmailLoginToken.findOne({
-    email,
-    tokenHash: hashCode(email, code),
-    usedAt: null,
-    expiresAt: { $gt: new Date() }
-  });
+  const invalidCode = { error: 'This sign-in code is invalid or expired.', status: 400 };
 
-  if (!loginToken) {
-    return { error: 'This sign-in code is invalid or expired.', status: 400 };
+  // Count the attempt atomically before checking the code, so parallel
+  // requests cannot get more than MAX_CODE_ATTEMPTS guesses at one code.
+  const loginToken = await EmailLoginToken.findOneAndUpdate(
+    {
+      email,
+      usedAt: null,
+      expiresAt: { $gt: new Date() },
+      $or: [
+        { attempts: { $lt: MAX_CODE_ATTEMPTS } },
+        { attempts: { $exists: false } }
+      ]
+    },
+    { $inc: { attempts: 1 } },
+    { sort: { createdAt: -1 }, returnDocument: 'after' }
+  );
+
+  if (!loginToken || !hashesMatch(loginToken.tokenHash, hashCode(email, code))) {
+    return invalidCode;
+  }
+
+  // Claim the code atomically so it can only be used once.
+  const claimed = await EmailLoginToken.findOneAndUpdate(
+    { _id: loginToken._id, usedAt: null },
+    { usedAt: new Date() }
+  );
+  if (!claimed) {
+    return invalidCode;
   }
 
   const user = await User.findById(loginToken.userId);
@@ -206,8 +233,7 @@ async function verifyEmailLogin(body = {}) {
   if (!['local', 'email'].includes(user.authProvider)) {
     user.authProvider = 'email';
   }
-  loginToken.usedAt = new Date();
-  await Promise.all([user.save(), loginToken.save()]);
+  await user.save();
 
   return { user, redirect: loginToken.redirect };
 }
